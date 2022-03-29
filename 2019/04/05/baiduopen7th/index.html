@@ -1,0 +1,147 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="a personal blog"><title>百度技术开放日7th | Not determined yet</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/normalize.css/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/pure-min.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><script type="text/javascript" src="//cdn.jsdelivr.net/npm/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.css"><meta name="generator" content="Hexo 6.1.0"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">百度技术开放日7th</h1><a id="logo" href="/.">Not determined yet</a><p class="description">知其强，守其弱，为天下菜，为天下菜，可以下饭。</p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><div class="alert alert-danger" role="alert"><i class="fa fa-exclamation-triangle warning"> 本文发表的时间过于久远，其中的信息可能已经有所发展或者不再适用于现阶段</i></div><h1 class="post-title">百度技术开放日7th</h1><div class="post-meta">2019-04-05<span> | </span><span class="category"><a href="/categories/%E6%8A%80%E6%9C%AF/">技术</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 1.4k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 4</span><span class="post-meta-item-text"> 分钟</span></span></span></div><a class="disqus-comment-count" data-disqus-identifier="2019/04/05/baiduopen7th/" href="/2019/04/05/baiduopen7th/#disqus_thread"></a><div class="post-content"><p>最开始提到会议地点在中关村时，我还没反应过来，到了现场后才发现，这不是大计基老师曾带我们来参观过吗——还记得当时在园区里走了半天累得脚痛。</p>
+<p><img src="https://counter2015.com/picture/open-1.jpg"> </p>
+<p>会议开始是10点，在外面用手机签到，进去后发现有9成以上的位置都有人坐着了，随便在后排找了个位置，开始看暖(zi)场(chui)视频</p>
+<h2 id="1-开场"><a href="#1-开场" class="headerlink" title="1. 开场"></a>1. 开场</h2><p>主持人简单介绍了下，就开始了。本次会议的主题是春晚红包场景的下各种问题的解决方案。</p>
+<p>首先开场自吹一波中国技术人员的两个共识</p>
+<ul>
+<li>百度是一家以技术为导向的公司</li>
+<li>百度的技术在国内最强(阿里&#x2F;腾讯&#x2F;头条： ？？？)</li>
+</ul>
+<p>然后回顾往昔，讲了下2005年的时候，贴吧当时还是围绕《超级女声》的讨论贴特别火。那是的贴吧实现代码都是C写的，顺便悼念了下自己学生时代的ASP。</p>
+<p>接下来讲了下春晚红包的互动次数208亿，扩容能在分钟级别<sup id="fnref:1"><a href="#fn:1" rel="footnote">1</a></sup>内部署完毕，为了确保春晚抢红包<strong>如丝般顺滑的体验</strong>采取了以下应对措施</p>
+<ul>
+<li>点击路径的优化</li>
+<li>技术积累</li>
+<li>工程保障</li>
+</ul>
+<h2 id="2-架构优化与设计"><a href="#2-架构优化与设计" class="headerlink" title="2. 架构优化与设计"></a>2. 架构优化与设计</h2><p>需求：承载极端TPS 每秒千万</p>
+<p>巨型化方案 VS SET化方案<sup id="fnref:2"><a href="#fn:2" rel="footnote">2</a></sup></p>
+<p>采用后者，优点是可以防止故障扩散，并且将巨型的分布式系统分化成多个大型分布式系统</p>
+<p>异步消息队列 VS 同步实时读写</p>
+<p>用户抢到红包需要立刻查看自己的金额，因而为了确保用户<del>如丝般顺滑的(冷笑话不会因为重复次数变多而更加好笑)</del>体验，采用后者，同时使用记录日志的方式确保数据不会被遗失</p>
+<p>其他要点将在后面分别细讲</p>
+<ul>
+<li>视频搜索</li>
+<li>小程序的预加载降低了CDN的压力</li>
+<li>登录和Session的保持</li>
+<li>多重校验机制</li>
+<li>统一接入层（BFE）入口</li>
+</ul>
+<p>压测</p>
+<ul>
+<li>全链路 入口全</li>
+<li>全要素 通盘考虑所有情况</li>
+<li>内测&#x2F;预案&#x2F;演练</li>
+</ul>
+<p>拦截黑产2.6亿次<del>防止自己被薅羊毛</del></p>
+<h2 id="3-统一前端入口-（Baidu-Front-End-BFD）"><a href="#3-统一前端入口-（Baidu-Front-End-BFD）" class="headerlink" title="3 统一前端入口 （Baidu Front End, BFD）"></a>3 统一前端入口 （Baidu Front End, BFD）</h2><p><img src="https://counter2015.com/picture/open-2.jpg"> </p>
+<p>编程语言的选择：全球先进的go语言(说到了至少三次)，而不是C with Nginx，确保了高效的开发效率</p>
+<p>支持多种协议<sup id="fnref:3"><a href="#fn:3" rel="footnote">3</a></sup></p>
+<ul>
+<li>HTTP</li>
+<li>HTTPS</li>
+<li>HTTP2</li>
+<li>QUIC</li>
+</ul>
+<p>为什么使用统一的前端入口接入</p>
+<ul>
+<li>网络资源的统一管理</li>
+<li>功能的统一开发</li>
+<li>方便流量过滤逻辑上移</li>
+<li>平台化的趋势</li>
+</ul>
+<p>讲完这个已经11：00了，不知道是不是因为超时了，讲的特别快，内容也没有想象的丰富。</p>
+<h2 id="4-极端并发下的数据库解决方案"><a href="#4-极端并发下的数据库解决方案" class="headerlink" title="4. 极端并发下的数据库解决方案"></a>4. 极端并发下的数据库解决方案</h2><p><img src="https://counter2015.com/picture/open-3.jpg"> </p>
+<p>如果你仔细阅读这一页 ppt 的标题时，你会发现汉字顺序的并影响不阅读</p>
+<p>容灾采用的是南北双数据中心</p>
+<p>当负载过高时使用柔性降级</p>
+<p>对流量做标记和画像</p>
+<p>这部分讲解的比较宽泛，只是大致提了下要点，没有详细到技术细节。台下这时候大概都觉得累了，掌声没有之前那么响了</p>
+<h2 id="5-弹性部署和资源调度"><a href="#5-弹性部署和资源调度" class="headerlink" title="5. 弹性部署和资源调度"></a>5. 弹性部署和资源调度</h2><p>讲的是如何精打细算利用手头的计算资源，就是春晚抢红包时把其他不重要的业务降级，腾出资源。</p>
+<p>服务器混合部署，将集群划分为三类，在线&#x2F;离线&#x2F;备用。</p>
+<h2 id="6-媒体在云平台上的解决方案"><a href="#6-媒体在云平台上的解决方案" class="headerlink" title="6. 媒体在云平台上的解决方案"></a>6. 媒体在云平台上的解决方案</h2><p>难点在于2000PB+的图片视频的转码和分发</p>
+<p>灰度上线</p>
+<h2 id="7-研发效率"><a href="#7-研发效率" class="headerlink" title="7. 研发效率"></a>7. 研发效率</h2><p>1月6日启动，1月30日开发完成</p>
+<p>具体可以参考百度工程能力白皮书</p>
+<p>程序员压力也不大吗.jpg <del>虽然这位做的是产品效率方面的</del></p>
+<p><img src="https://counter2015.com/picture/open-4.jpg"> </p>
+<h2 id="8-压测攻防"><a href="#8-压测攻防" class="headerlink" title="8. 压测攻防"></a>8. 压测攻防</h2><p>听到这我实在时没力气记录了,东西收拾好准备跑路</p>
+<h2 id="X-小结和疑问"><a href="#X-小结和疑问" class="headerlink" title="X. 小结和疑问"></a>X. 小结和疑问</h2><p>吐槽</p>
+<ul>
+<li>干货少，感觉有意淡化技术名词的出现，只是将大概的思路却不具体剖析实践过程，“技术开放日”名不副实</li>
+<li>思路类似，太阳底下没有新鲜事</li>
+<li>无互动，本来还期待能有提问环节的，这种讲座没有提问到最后真是听的人昏昏欲睡</li>
+<li>不给发PPT，PPT的配色实在时不敢恭维，深蓝色背景加LOGO，丑到爆炸</li>
+<li>座位后边有一瓶水，本来自己的水喝完了口渴准备拆开了的，结果发现划痕明显，定睛一看没有生产日期，立刻不敢喝了</li>
+</ul>
+<p>想问的问题</p>
+<ul>
+<li><p>如何确保拦截的是黑产而不是普通用户，判断标准是什么？</p>
+</li>
+<li><p>怎么实现的柔性降级？</p>
+</li>
+<li><p>为什么能在1分钟内扩容后台服务，这里包括服务启动的时间吗？</p>
+</li>
+</ul>
+<p>总体而言感觉一般般，逼格无法匹配其业界体量(或者说本来就不想具体说明技术细节)</p>
+<div id="footnotes"><hr><div id="footnotelist"><ol style="list-style:none; padding-left: 0;"><li id="fn:1"><span style="display: inline-block; vertical-align: top; padding-right: 10px;">1.</span><span style="display: inline-block; vertical-align: top;">2022年，部署在 Kubernetes 上的无状态服务可以在几秒内扩容完成</span><a href="#fnref:1" rev="footnote"> ↩</a></li><li id="fn:2"><span style="display: inline-block; vertical-align: top; padding-right: 10px;">2.</span><span style="display: inline-block; vertical-align: top;">2022年，部署在 Kubernetes 上的无状态服务可以轻松地通过控制副本数量完成水平扩容</span><a href="#fnref:2" rev="footnote"> ↩</a></li><li id="fn:3"><span style="display: inline-block; vertical-align: top; padding-right: 10px;">3.</span><span style="display: inline-block; vertical-align: top;">这有三个都是基于HTTP的好吧</span><a href="#fnref:3" rev="footnote"> ↩</a></li></ol></div></div></div><div class="post-copyright"><script type="text/javascript" src="/js/copyright.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/css/copyright.css"><p><span>版权声明：</span><p>除另有声明外，本博客文章均采用 <a target="_blank" rel="noopener" href="http://creativecommons.org/licenses/by-nc-sa/3.0/cn/"><b>知识共享(Creative Commons) 署名-非商业性使用-相同方式共享 3.0 中国大陆许可协议</b></a> 进行许可。</p></p></div><br><script type="text/javascript" src="/js/share.js?v=1.0.0" async></script><a class="article-share-link" data-url="https://counter2015.github.io/2019/04/05/baiduopen7th/" data-id="cl1c53mf3000107pv5u80993q" data-qrcode="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMYAAADGCAAAAACs8KCBAAACMUlEQVR42u3aQW7DMAwEwPz/0+61QBJlV0ICWBqfisCWNT6wFMnHI76up+v/78md45Wfn31848LAwLgt4xpe4xckLx6zx/cke8PAwDiH0b4+hyXIPKC//R0DAwMj3kqy5vh+DAwMjN8E3AS//jkwMDBOY+QpWlsgaw/DXz+LY2Bg3JCRh8Lf//2V/gYGBsatGFd5rZTexoEyD7IvVsPAwNiakQe4uTZAsrm2Ifr2TgwMjAMYc8fIPL1b/1iTCSIGBsZGjLzs1SaI45XbPUT/NzAwMLZjrB8pE1gbcNuWAwYGxt6MJBVrg2lbYmtDc3QWx8DA2IiRh792hCKJ7knzcmnMAgMDYwtGWzJbb0O2rYI6NcTAwNia0Zb483DcNgPyhigGBsbejKQB0G59vRVaF+8wMDCOYSRNxJWn8qGKetgCAwPjAMbKFttSWp6xFkEfAwNja0ab0rVNhbm25eTRFwMDY1PGepk+Se+SYN02RDEwMM5htElbG4jXw26BxMDAOIaRD2m1ta+5IYxiHAQDA+NgRl4Cawcp2hU+fGIMDIwDGHkRbS4gFsMTcSHvRcDFwMDYjnGV11yIXF/hw1MYGBhbM9qWZHJAbRuT+ZrrjVUMDIz7MtoQ2SZ8bfBNUsboLI6BgbEdIz/1tqMY7eDF3EEaAwMDIyclmLmP9YGKgYGBsVBiG6d6eSiPDrEYGBhbM+ZGtdpn2yPrV8ptGBgYN2S0Iw7t5oqgWc6JYGBgHMD4A4+U+givw6eTAAAAAElFTkSuQmCC">分享</a><div class="tags"><a href="/tags/%E4%BC%9A%E8%AE%AE/"><i class="fa fa-tag"></i>会议</a></div><div class="post-nav"><a class="next" href="/2018/12/02/Kafka%20File%20Connector%20%E7%AE%80%E5%8D%95%E4%BD%BF%E7%94%A8/">Kafka File Connector 简单使用</a></div><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/sukkaw/disqusjs/dist/disqusjs.css?v=1.0.0"><script type="text/javascript" src="https://cdn.jsdelivr.net/gh/sukkaw/disqusjs/dist/disqus.js?v=1.0.0"></script><script type="text/javascript" id="disqus-count-script">$(function() {
+     var xhr = new XMLHttpRequest();
+     xhr.open('GET', '//disqus.com/next/config.json', true);
+     xhr.timeout = 2500;
+     xhr.onreadystatechange = function () {
+       if (xhr.readyState === 4 && xhr.status === 200) {
+         $('.post-meta .post-comments-count').show();
+         var s = document.createElement('script');
+         s.id = 'dsq-count-scr';
+         s.src = 'https://counter2015.disqus.com/count.js';
+         s.async = true;
+         (document.head || document.body).appendChild(s);
+       }
+     };
+     xhr.ontimeout = function () { xhr.abort(); };
+     xhr.send(null);
+   });</script><div class="comments" id="disqus_thread"><script type="text/javascript">// Load comments with DisqusJS
+function loadComments() {
+  window.dsqjs = new DisqusJS({
+    shortname: 'counter2015',
+    siteName: 'Not determined yet',
+    identifier: '2019/04/05/baiduopen7th/',
+    url: 'https://counter2015.github.io/2019/04/05/baiduopen7th/',
+    title: '百度技术开放日7th',
+    api: '',
+    apikey: '',
+    admin: '',
+    adminLabel: ''
+  });
+}
+// Lazy load {# Credit: https://github.com/theme-next/hexo-theme-next/blob/master/layout/_third-party/comments/disqus.swig #}
+(function () {
+  var offsetTop = document.getElementById('disqus_thread').offsetTop - window.innerHeight;
+  if (offsetTop <= 0) {
+    // Load directly when there's no scrollbar
+    window.addEventListener('load', loadComments, false);
+  } else {
+    var disqusScroll = function () {
+      // offsetTop may changes because of manually resizing browser window or lazy loading images
+      var offsetTop = document.getElementById('disqus_thread').offsetTop - window.innerHeight;
+      var scrollTop = window.scrollY;
+
+      // Pre-load comments a bit? (margin or anything else)
+      if (offsetTop - scrollTop < 60) {
+        window.removeEventListener('scroll', disqusScroll);
+        loadComments();
+      }
+    };
+    window.addEventListener('scroll', disqusScroll);
+  }
+})();
+// Scroll to comments automatically if #comment-xxx anchor specified
+window.addEventListener('load', function () {
+  // I don't know why, it just works.
+  window.setTimeout(function () {
+    if (location.hash.indexOf('#comment-') !== -1) {
+      document.getElementById('disqus_thread').scrollIntoView(true);
+    }
+  }, 100);
+}, false);
+</script></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="https://counter2015.github.io"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/%E6%8A%80%E6%9C%AF/">技术</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/%E4%BC%9A%E8%AE%AE/" style="font-size: 15px;">会议</a> <a href="/tags/kafka/" style="font-size: 15px;">kafka</a> <a href="/tags/kafka-connect/" style="font-size: 15px;">kafka-connect</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/04/05/baiduopen7th/">百度技术开放日7th</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/12/02/Kafka%20File%20Connector%20%E7%AE%80%E5%8D%95%E4%BD%BF%E7%94%A8/">Kafka File Connector 简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/11/20/hello-world/">Hello World</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-comment-o"> 最近评论</i></div><script type="text/javascript" src="//counter2015.disqus.com/recent_comments_widget.js?num_items=5&amp;hide_avatars=1&amp;avatar_size=32&amp;excerpt_length=20&amp;hide_mods=1"></script></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://wiki.hushhw.cn" title="hushhw's blog 身经百战见得多了" target="_blank">hushhw's blog 身经百战见得多了</a><ul></ul><a href="https://blog.iseki.space" title="isekiのNote" target="_blank">isekiのNote</a><ul></ul><a href="https://razertory.github.io" title="Razetory的技术博客" target="_blank">Razetory的技术博客</a><ul></ul><a href="https://blog.ajin.cloud" title="ajin的博客" target="_blank">ajin的博客</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2022 <a href="/." rel="nofollow">Not determined yet.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.css"><script type="text/javascript" src="/js/copycode.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=1.0.0"></script></div></body></html>
