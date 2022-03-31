@@ -2,7 +2,7 @@
 
 title: Kafka File Connector 简单使用
 date: 2018-12-2 11:56:29
-tags: [kafka, kafka-connect] 
+tags: [kafka] 
 categories: [技术]
 
 ---
