@@ -1,0 +1,157 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="a personal blog"><title>hbase安装指南 | Not determined yet</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/normalize.css/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/pure-min.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"><script src="https://www.googletagmanager.com/gtag/js?id=G-N73FWWZR9G" async></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-N73FWWZR9G');
+</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.css"><style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 6.1.0"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">hbase安装指南</h1><a id="logo" href="/blog/.">Not determined yet</a><p class="description">知其强，守其弱，为天下菜，为天下菜，可以下饭。</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a><a href="/blog/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><div class="alert alert-danger" role="alert"><i class="fa fa-exclamation-triangle warning"> 本文发表的时间过于久远，其中的信息可能已经有所发展或者不再适用于现阶段</i></div><h1 class="post-title">hbase安装指南</h1><div class="post-meta">2019-03-23<span> | </span><span class="category"><a href="/blog/categories/%E6%8A%80%E6%9C%AF/">技术</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 929</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 4</span><span class="post-meta-item-text"> 分钟</span></span></span></div><a class="disqus-comment-count" data-disqus-identifier="2019/03/23/hbase/" href="/blog/2019/03/23/hbase/#disqus_thread"></a><div class="post-content"><h2 id="依赖"><a href="#依赖" class="headerlink" title="依赖"></a>依赖</h2><ul>
+<li>JDK 8</li>
+<li>Hadoop 2.7.1,<a target="_blank" rel="noopener" href="https://archive.apache.org/dist/hadoop/common/">下载地址</a></li>
+<li>Zookeeper 3.4.12</li>
+</ul>
+<p>请参照<a target="_blank" rel="noopener" href="http://hbase.apache.org/book.html#hadoop">适配表格</a>选择合适的Hadoop&#x2F;HBase版本，否则很可能出现奇怪的bug。</p>
+<p><img src="https://counter2015.com/picture/hbase-1.jpg"> </p>
+<p><strong>本文假设环境<a target="_blank" rel="noopener" href="http://counter2015.com/2018/11/28/zookeeper%20%E9%9B%86%E7%BE%A4%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/">zookeeper集群安装部署</a>, <a target="_blank" rel="noopener" href="http://counter2015.com/2018/12/13/hadoop%20quick%20start/">hadoop快速安装指南</a>安装按照对应文章步骤,且已经配置好java,hadoop,zookeeper的环境变量</strong>。</p>
+<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><p>官网地址：<a target="_blank" rel="noopener" href="http://hbase.apache.org/">http://hbase.apache.org/</a></p>
+<p>使用的HBase版本为2.1.3，安装方式为<a target="_blank" rel="noopener" href="http://hbase.apache.org/book.html#pseudo">伪分布式</a><del>因为我没钱租服务器</del></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tar -zxf hbase-2.1.3-bin.tar.gz</span> </span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">mv</span> hbase-2.1.3 hbase</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">mv</span> hbase ../bin/</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> ../bin/hbase/</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">pwd</span></span></span><br><span class="line">/root/bin/hbase</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">vim conf/hbase-env.sh</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">The java implementation to use.  Java 1.8+ required.</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">这里的jdk路径按照个人设置来配置</span></span><br><span class="line">export JAVA_HOME=/root/bin/jdk</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">vim conf/hbase-site.xml</span></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;property&gt;</span><br><span class="line">    &lt;name&gt;hbase.rootdir&lt;/name&gt;</span><br><span class="line">    &lt;value&gt;hdfs://mycentos:8020/hbase&lt;/value&gt;</span><br><span class="line">  &lt;/property&gt;</span><br><span class="line">  </span><br><span class="line">&lt;/configuration&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">bin/hbase shell</span></span><br><span class="line">hbase(main):001:0&gt; </span><br></pre></td></tr></table></figure>
+
+
+
+<p>至此，单机的hbase部署完成。</p>
+<p>配置环境变量</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">export LOCAL=/root/bin</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Hbase</span></span><br><span class="line">export HBASE_HOME=$LOCAL/hbase</span><br><span class="line">export PATH=$HBASE_HOME/bin:$PATH</span><br></pre></td></tr></table></figure>
+
+
+
+<p>退出后，修改配置文件来安装伪分布式Hbase</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">vim conf/hbase-env.sh</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">使用外部zookeeper而不是hbase自带的</span></span><br><span class="line">export HBASE_MANAGES_ZK=false</span><br></pre></td></tr></table></figure>
+
+<p>修改<code>hbase-site.xml</code>，完整的配置文件如下</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.rootdir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>hdfs://mycentos:9000/hbase<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.cluster.distributed<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.tmp.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>/root/bin/hbase/tmp<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.property.dataDir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>/root/bin/zookeeper/data<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.zookeeper.quorum<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>mycentos<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>hbase.rootdir</code>的前半部分地址和hadoop配置文件<code>core-site.xml</code>中的<code>fs.defaultFS</code>相同，这个例子中，<code>fs.defaultFS</code>配置的是<code>hdfs://mycentos:9000</code>，该目录用来用来持久化HBase的数据</li>
+<li><code>hbase.cluster.distributed</code>需要设置为<code>true</code></li>
+<li><code>hbase.zookeeper.quorum</code>，多个域名之间用逗号分隔，这里我只在本地启动了一个zookeeper</li>
+<li><code>hbase.zookeeper.property.dataDir</code>,和zookeeper配置文件<code>zoo.cfg</code>中的<code>dataDir</code>配置的路径相同</li>
+</ul>
+<h2 id="启动"><a href="#启动" class="headerlink" title="启动"></a>启动</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">start-hbase.sh</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">出现HMaster,HRegionServer说明启动成功</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">jps</span></span><br><span class="line">86529 DataNode</span><br><span class="line">87393 NodeManager</span><br><span class="line">107136 HMaster</span><br><span class="line">86324 NameNode</span><br><span class="line">86807 SecondaryNameNode</span><br><span class="line">12730 SupportedKafka</span><br><span class="line">11931 QuorumPeerMain</span><br><span class="line">107277 HRegionServer</span><br><span class="line">87260 ResourceManager</span><br><span class="line">109422 Jps</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">hbase shell</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">hbase的命名空间默认是default</span></span><br><span class="line">hbase(main):001:0&gt; list_namespace</span><br><span class="line">NAMESPACE         </span><br><span class="line">default                              </span><br><span class="line">hbase                      </span><br><span class="line">2 row(s)</span><br><span class="line">Took 1.0839 seconds  </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">新建一个名为<span class="built_in">test</span>的命名空间</span></span><br><span class="line">hbase(main):003:0&gt; create_namespace &#x27;test&#x27;</span><br><span class="line">Took 0.4517 seconds</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在<span class="built_in">test</span>的命名空间内新建一个表test_table_1,其有一个列族名为column_family_1</span></span><br><span class="line">hbase(main):005:0&gt; create &#x27;test:test_table_1&#x27;, &#x27;column_family_1&#x27;</span><br><span class="line">Created table test:test_table_1</span><br><span class="line">Took 1.5447 seconds                                                             </span><br><span class="line">=&gt; Hbase::Table - test:test_table_1</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">  往<span class="built_in">test</span>:test_table_1表中行键为rowkey1的位置，列族为column_family_1,列为column_1</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">的位置插入value1</span></span><br><span class="line">hbase(main):006:0&gt; put &#x27;test:test_table_1&#x27;, &#x27;rowkey1&#x27;, &#x27;column_family_1:column_1&#x27;, &#x27;value1&#x27;</span><br><span class="line">Took 0.2476 seconds  </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">查看<span class="built_in">test</span>:test_table_1的所有值</span></span><br><span class="line">hbase(main):007:0&gt; scan &#x27;test:test_table_1&#x27;</span><br><span class="line">ROW                                          COLUMN+CELL              </span><br><span class="line">rowkey1       column=column_family_1:column_1,timestamp=1553147678290,value=value1     </span><br><span class="line">1 row(s)</span><br><span class="line">Took 0.0630 seconds </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">查看<span class="built_in">test</span>:test_table_1的表的属性</span></span><br><span class="line">hbase(main):010:0&gt; describe &#x27;test:test_table_1&#x27;</span><br><span class="line">Table test:test_table_1 is ENABLED</span><br><span class="line">test:test_table_1 </span><br><span class="line">COLUMN FAMILIES DESCRIPTION</span><br><span class="line">&#123;NAME =&gt; &#x27;column_family_1&#x27;, VERSIONS =&gt; &#x27;1&#x27;, EVICT_BLOCKS_ON_CLOSE =&gt; &#x27;false&#x27;, NEW_VERSION_BEHAVIOR =&gt; &#x27;false&#x27;, KEEP_DELETED_CELLS =&gt; &#x27;FALSE&#x27;, CACHE_DATA_ON_WRITE =&gt; &#x27;false&#x27;,DATA_BLOCK_ENCODING =&gt; &#x27;NONE&#x27;, TTL =&gt; &#x27;FOREVER&#x27;, MIN_VERSIONS =&gt; &#x27;0&#x27;, REPLICATION_SCOPE =&gt; &#x27;0&#x27;, BLOOMFILTER =&gt; &#x27;ROW&#x27;, CACHE_INDEX_ON_WRITE =&gt; &#x27;false&#x27;, IN_MEMORY =&gt; &#x27;false&#x27;, CACHE_BLOOMS_ON_WRITE =&gt; &#x27;false&#x27;, PREFETCH_BLOCKS_ON_OPEN =&gt; &#x27;false&#x27;, COMPRESSION =&gt; &#x27;NONE&#x27;, BLOCKCACHE =&gt; &#x27;true&#x27;, BLOCKSIZE =&gt; &#x27;65536&#x27;&#125;</span><br><span class="line">1 row(s)</span><br><span class="line">Took 0.5791 seconds  </span><br></pre></td></tr></table></figure>
+
+
+
+<p>HBase web监控界面 默认端口号为16010</p>
+<p><img src="https://counter2015.com/picture/hbase-2.png"> </p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a target="_blank" rel="noopener" href="http://hbase.apache.org/2.1/book.html">HBase官方文档</a> </li>
+<li><a target="_blank" rel="noopener" href="https://github.com/apache/hbase/blob/master/hbase-common/src/main/resources/hbase-default.xml">HBase默认配置文件</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/qingyunzong/p/8668880.html">HBase学习之路 （二）HBase集群安装</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/HG_Harvey/article/details/79594552">HBase 伪分布式搭建（使用外部ZK)</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/apache/hbase/blob/master/src/main/asciidoc/_chapters/troubleshooting.adoc#trouble.master.startup">常见错误排查</a></li>
+</ol>
+</div><div class="post-copyright"><script type="text/javascript" src="/blog/js/copyright.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/blog/css/copyright.css"><p><span>版权声明：</span><p>除另有声明外，本博客文章均采用 <a target="_blank" rel="noopener" href="http://creativecommons.org/licenses/by-nc-sa/3.0/cn/"><b>知识共享(Creative Commons) 署名-非商业性使用-相同方式共享 3.0 中国大陆许可协议</b></a> 进行许可。</p></p></div><br><script type="text/javascript" src="/blog/js/share.js?v=1.0.0" async></script><a class="article-share-link" data-url="https://counter2015.github.io/blog/2019/03/23/hbase/" data-id="cl1f4lm360001f1pvb38v4x2w" data-qrcode="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMYAAADGCAAAAACs8KCBAAACK0lEQVR42u3aO47DMAxF0ex/006bxsJ9pB1A1FU1mDi2jwpG/Hw+eF0/i1/Jr0+fUlwyZMjYlnEt1/qazkasn8XfTYYMGecwSCgkn/aR6+fe/l+GDBkyltd0giYJ9DJkyJDRD7jpt2qhXIYMGTLSwMcT2vS1Xs/FZciQsSGDJ5n///uV/oYMGTK2YtQSS94qqIXI+K1kyJAxmsED3LoBWQvTpJ0ZDH/IkCFjKGMdKMnrpoMa65JZemXwNRkyZGzL4MGuf4hMW55xc0KGDBlDGbUH1wIoP/Dxo2fxd0OGDBkjGGkhrAbulPBkyJBxJoOXwNCt8ShYMWWVIUPGMYza0AMvpdUCdHELZMiQMZRBAl9nYCINr6TYd9vClCFDxmEMEmprpX++NUHxToYMGaMZaSrLD4hpWvvKsIUMGTIGMdLjHb9RLd0ld3ugDCdDhoxtGSSMpoBnBzLQm8iQIWM0gxfFeHDkTQICKx4KZciQsTnjwuupOYc3jpgyZMg4h5GWw2qFOb59wTbJkCHjYEYnrU1hPGW97cfKkCFjNKOWoHbC8bMDZzJkyJjKuMJVS307oxjxoVCGDBnjGHyR4MiPkp2kt9jrkCFDxuaMTohMy2fkznzLgv6GDBkyRjCCrBcEUx5w01+AW6QMGTJkgAMcb3ymDU5ElSFDhoww603LdnzI4+GAK0OGjK0YJNXk5TaS3PI0GIFlyJAxmtGZ1ODHQb41b6S+MmTI2JbxBSGaQc/vS13IAAAAAElFTkSuQmCC">分享</a><div class="tags"><a href="/blog/tagshadoop"><i class="fa fa-tag">hadoop</i></a><a href="/blog/tagshbase"><i class="fa fa-tag">hbase</i></a></div><div class="post-nav"><a class="pre" href="/blog/2019/03/24/puzzle4/">Scala Puzzle 4.Now You See Me, Now You Don't</a><a class="next" href="/blog/2019/02/23/puzzle3/">Scala Puzzle 3.Location, Location, Location</a></div><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/sukkaw/disqusjs/dist/disqusjs.css"><script type="text/javascript" src="https://cdn.jsdelivr.net/gh/sukkaw/disqusjs/dist/disqus.js"></script><script type="text/javascript" id="disqus-count-script">$(function() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', '//disqus.com/next/config.json', true);
+  xhr.timeout = 2500;
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      $('.post-meta .post-comments-count').show();
+      var s = document.createElement('script');
+      s.id = 'dsq-count-scr';
+      s.src = 'https://counter2015.disqus.com/count.js';
+      s.async = true;
+      (document.head || document.body).appendChild(s);
+    }
+  };
+  xhr.ontimeout = function () { xhr.abort(); };
+  xhr.send(null);
+});
+</script><div class="comments" id="disqus_thread"><script type="text/javascript">// Load comments with DisqusJS
+function loadComments() {
+  window.dsqjs = new DisqusJS({
+    shortname: 'counter2015',
+    siteName: 'Not determined yet',
+    identifier: '2019/03/23/hbase/',
+    url: 'https://counter2015.github.io/blog/2019/03/23/hbase/',
+    title: 'hbase安装指南',
+    api: '',
+    apikey: '',
+    admin: '',
+    adminLabel: ''
+  });
+}
+// Lazy load {# Credit: https://github.com/theme-next/hexo-theme-next/blob/master/layout/_third-party/comments/disqus.swig #}
+(function () {
+  var offsetTop = document.getElementById('disqus_thread').offsetTop - window.innerHeight;
+  if (offsetTop <= 0) {
+    // Load directly when there's no scrollbar
+    window.addEventListener('load', loadComments, false);
+  } else {
+    var disqusScroll = function () {
+      // offsetTop may changes because of manually resizing browser window or lazy loading images
+      var offsetTop = document.getElementById('disqus_thread').offsetTop - window.innerHeight;
+      var scrollTop = window.scrollY;
+
+      // Pre-load comments a bit? (margin or anything else)
+      if (offsetTop - scrollTop < 60) {
+        window.removeEventListener('scroll', disqusScroll);
+        loadComments();
+      }
+    };
+    window.addEventListener('scroll', disqusScroll);
+  }
+})();
+// Scroll to comments automatically if #comment-xxx anchor specified
+window.addEventListener('load', function () {
+  // I don't know why, it just works.
+  window.setTimeout(function () {
+    if (location.hash.indexOf('#comment-') !== -1) {
+      document.getElementById('disqus_thread').scrollIntoView(true);
+    }
+  }, 100);
+}, false);
+</script></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="https://counter2015.github.io/blog"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/puzzles/">puzzles</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E6%8A%80%E6%9C%AF/">技术</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/hadoop/" style="font-size: 15px;">hadoop</a> <a href="/blog/tags/hbase/" style="font-size: 15px;">hbase</a> <a href="/blog/tags/kafka/" style="font-size: 15px;">kafka</a> <a href="/blog/tags/%E4%BC%9A%E8%AE%AE/" style="font-size: 15px;">会议</a> <a href="/blog/tags/scala/" style="font-size: 15px;">scala</a> <a href="/blog/tags/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" style="font-size: 15px;">读书笔记</a> <a href="/blog/tags/zookeeper/" style="font-size: 15px;">zookeeper</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/2019/04/07/puzzle5/">Scala Puzzle 5.The Missing List</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/04/05/baiduopen7th/">百度技术开放日7th</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/03/24/puzzle4/">Scala Puzzle 4.Now You See Me, Now You Don't</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/03/23/hbase/">hbase安装指南</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/02/23/puzzle3/">Scala Puzzle 3.Location, Location, Location</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/01/06/puzzle2/">Scala Puzzle 2.UPSTAIRS downstairs</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2018/12/15/Kafka%20HDFS%20Sink%20Connector%20%E7%AE%80%E5%8D%95%E4%BD%BF%E7%94%A8/">Kafka HDFS Sink Connector 简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2018/12/02/Kafka%20File%20Connector%20%E7%AE%80%E5%8D%95%E4%BD%BF%E7%94%A8/">Kafka File Connector 简单使用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2018/11/25/zookeeper%20%E9%9B%86%E7%BE%A4%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/">zookeeper集群安装部署</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2018/11/20/hello-world/">Hello World</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-comment-o"> 最近评论</i></div><script type="text/javascript" src="//counter2015.disqus.com/recent_comments_widget.js?num_items=5&amp;hide_avatars=1&amp;avatar_size=32&amp;excerpt_length=20&amp;hide_mods=1"></script></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://wiki.hushhw.cn" title="hushhw's blog 身经百战见得多了" target="_blank">hushhw's blog 身经百战见得多了</a><ul></ul><a href="https://blog.iseki.space" title="isekiのNote" target="_blank">isekiのNote</a><ul></ul><a href="https://razertory.github.io" title="Razetory的技术博客" target="_blank">Razetory的技术博客</a><ul></ul><a href="https://blog.ajin.cloud" title="ajin的博客" target="_blank">ajin的博客</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2022 <a href="/blog/." rel="nofollow">Not determined yet.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.css"><script type="text/javascript" src="/blog/js/copycode.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/blog/css/copycode.css"><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=1.0.0"></script></div></body></html>
