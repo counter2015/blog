@@ -1,0 +1,146 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="a personal blog"><title>StackoverFlow and JVM | Not determined yet</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/normalize.css/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/pure-min.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"><script src="https://www.googletagmanager.com/gtag/js?id=G-N73FWWZR9G" async></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-N73FWWZR9G');
+</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.css"><style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 6.1.0"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">StackoverFlow and JVM</h1><a id="logo" href="/blog/.">Not determined yet</a><p class="description">知其强，守其弱，为天下菜，为天下菜，可以下饭。</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a><a href="/blog/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><div class="alert alert-danger" role="alert"><i class="fa fa-exclamation-triangle warning"> 本文发表的时间过于久远，其中的信息可能已经有所发展或者不再适用于现阶段</i></div><h1 class="post-title">StackoverFlow and JVM</h1><div class="post-meta">2019-02-24<span> | </span><span class="category"><a href="/blog/categories/%E6%8A%80%E6%9C%AF/">技术</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 1k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 4</span><span class="post-meta-item-text"> 分钟</span></span></span></div><a class="disqus-comment-count" data-disqus-identifier="2019/02/24/jvm/" href="/blog/2019/02/24/jvm/#disqus_thread"></a><div class="post-content"><p>在学习scala的过程中注意到了这么一段示例代码</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">factorial</span></span>(x: <span class="type">BigInt</span>): <span class="type">BigInt</span> = <span class="keyword">if</span> (x == <span class="number">0</span>) <span class="number">1</span> <span class="keyword">else</span> x * factorial(x - <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p>这是一个计算阶乘的代码，这段代码是递归的方式写的，如果x的值足够大，就会栈溢出，那么到底栈的深度到底是多少呢？</p>
+<p>为此，写了如下代码来计算栈的深度</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">stackDepth</span></span>():<span class="type">Int</span> = </span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="number">1</span> + stackDepth()</span><br><span class="line">      &#125; </span><br><span class="line">      <span class="keyword">catch</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> e: <span class="type">StackOverflowError</span> =&gt; <span class="number">0</span></span><br><span class="line">      &#125;</span><br></pre></td></tr></table></figure>
+
+<p>以下是在REPL中运行的结果</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; <span class="function"><span class="keyword">def</span> <span class="title">stackDepth</span></span>():<span class="type">Int</span> = <span class="keyword">try</span> &#123;<span class="number">1</span> + stackDepth()&#125; <span class="keyword">catch</span> &#123;<span class="keyword">case</span> e: <span class="type">StackOverflowError</span> =&gt; <span class="number">0</span>&#125;</span><br><span class="line">stackDepth: ()<span class="type">Int</span></span><br><span class="line"></span><br><span class="line">scala&gt; stackDepth</span><br><span class="line">res1: <span class="type">Int</span> = <span class="number">21196</span></span><br><span class="line"></span><br><span class="line">scala&gt; stackDepth</span><br><span class="line">res2: <span class="type">Int</span> = <span class="number">58829</span></span><br><span class="line"></span><br><span class="line">scala&gt; stackDepth</span><br><span class="line">res3: <span class="type">Int</span> = <span class="number">58829</span></span><br><span class="line"></span><br><span class="line">scala&gt; stackDepth</span><br><span class="line">res4: <span class="type">Int</span> = <span class="number">58829</span></span><br><span class="line"></span><br><span class="line">scala&gt; <span class="function"><span class="keyword">def</span> <span class="title">stackDepth</span></span>():<span class="type">Int</span> = <span class="keyword">try</span> &#123;<span class="number">1</span> + stackDepth()&#125; <span class="keyword">catch</span> &#123;<span class="keyword">case</span> e: <span class="type">StackOverflowError</span> =&gt; <span class="number">0</span>&#125;</span><br><span class="line">stackDepth: ()<span class="type">Int</span></span><br><span class="line"></span><br><span class="line">scala&gt; stackDepth</span><br><span class="line">res5: <span class="type">Int</span> = <span class="number">9834</span></span><br><span class="line"></span><br><span class="line">scala&gt; stackDepth</span><br><span class="line">res6: <span class="type">Int</span> = <span class="number">23531</span></span><br><span class="line"></span><br><span class="line">scala&gt; stackDepth</span><br><span class="line">res7: <span class="type">Int</span> = <span class="number">58829</span></span><br><span class="line"></span><br><span class="line">scala&gt; stackDepth</span><br><span class="line">res8: <span class="type">Int</span> = <span class="number">58829</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>我们可以观察到一些有意思的现象</p>
+<ul>
+<li>同一个函数，多次运行时会在不同的位置抛出异常</li>
+<li>随着运行次数的增加，结果会趋于稳定，这里最后稳定的结果是<code>58829</code></li>
+<li>如果重新定义函数，栈深的测量结果会变小，但随着运行次数的增加，最后会和之前的结果一致</li>
+</ul>
+<p>这是为什么呢？</p>
+<p>其实仔细观察，在启动REPL的时候scala会打印如下信息</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">scala</span></span><br><span class="line">Welcome to Scala 2.11.12 (Java HotSpot(TM) 64-Bit Server VM, Java 1.8.0_181).</span><br><span class="line">Type in expressions for evaluation. Or try :help.</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">scala&gt; </span><span class="language-bash"></span></span><br><span class="line"><span class="language-bash"></span></span><br></pre></td></tr></table></figure>
+
+<p>会简单显示scala版本,java版本和使用的jvm（Java Virtual Machine）名称，而答案正是和jvm有关。</p>
+<blockquote>
+<p> Hotspot VM的热点代码探测能力可以通过执行计数器找出最有编译价值的代码，然后通知JIT编译器以方法为单位进行编译。如果一个方法被频繁调用，或方法中的有效循环次数过多，将会分别触发标准编译和OSR（栈上替换）编译动作。                                                                                     《深入理解java虚拟机》</p>
+</blockquote>
+<h2 id="JIT"><a href="#JIT" class="headerlink" title="JIT"></a>JIT</h2><blockquote>
+<p> Just-In-Time（JIT）编译器是Java Runtime Environment的一个组件，可在运行时提高Java应用程序的性能。Java程序由类组成，这些类包含可由JVM在许多不同计算机体系结构上解释的平台中性字节码。在运行时，JVM加载类文件，确定每个字节码的语义，并执行适当的计算。解释期间额外的处理器和内存使用意味着Java应用程序的执行速度比本机应用程序慢。JIT编译器通过在运行时将字节码编译为本机机器代码来帮助提高Java程序的性能。                                                     <a target="_blank" rel="noopener" href="https://aboullaite.me/understanding-jit-compiler-just-in-time-compiler/">Understanding JIT compiler (just-in-time compiler)</a></p>
+</blockquote>
+<p>这里的误差就是后台JIT编译造成的，如果我们尝试关闭JIT,编译速度会变慢，计算的结果也不会发生改变。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">scala -Djava.compiler=NONE</span></span><br><span class="line">Welcome to Scala 2.12.6 (Java HotSpot(TM) 64-Bit Server VM, Java 1.8.0_141).</span><br><span class="line">Type in expressions for evaluation. Or try :help.</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">scala&gt; </span><span class="language-bash">def stackDepth():Int = try &#123;1 + stackDepth()&#125; catch &#123;<span class="keyword">case</span> e: StackOverflowError =&gt; 0&#125;</span></span><br><span class="line">stackDepth: ()Int</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">scala&gt; </span><span class="language-bash">stackDepth</span></span><br><span class="line">res0: Int = 9092</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">scala&gt; </span><span class="language-bash">stackDepth</span></span><br><span class="line">res1: Int = 9092</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">scala&gt; </span><span class="language-bash">stackDepth</span></span><br><span class="line">res2: Int = 9092</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<p>对之前的JIT优化过程的一个简要说明如下：</p>
+<ol>
+<li><code>stackDepth</code>在解释器中运行</li>
+<li>多次调用后，<code>HotSpot</code>检测到这段代码，触发编译操作和栈上替换</li>
+<li>在编译期间，我们的程序还继续跑着</li>
+<li>编译完成后，<code>stackDepth</code>的函数入口被替换成优化的代码</li>
+<li>JIT的优化步骤可能会有多次</li>
+</ol>
+<p>因而，最开始的时候，只有解释的代码运行，后来是解释和编译的代码一起运行，当完全优化完后，就只有编译好的代码在跑着了。也就是说，栈的大小是没有变化的，变化的是我们这个程序的代码大小——逐渐优化导致每次执行的结果都不同。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/54759815/scala-code-in-recursive-calculation-of-factorial-function-sometimes-throw-stacko">https://stackoverflow.com/questions/54759815/scala-code-in-recursive-calculation-of-factorial-function-sometimes-throw-stacko</a></li>
+<li><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/27043922/why-is-the-max-recursion-depth-i-can-reach-non-deterministic">https://stackoverflow.com/questions/27043922/why-is-the-max-recursion-depth-i-can-reach-non-deterministic</a></li>
+<li><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/35517934/why-does-the-count-of-calls-of-a-recursive-method-causing-a-stackoverflowerror-v">https://stackoverflow.com/questions/35517934/why-does-the-count-of-calls-of-a-recursive-method-causing-a-stackoverflowerror-v</a></li>
+<li>programming in scala 3rd</li>
+<li>深入理解java虚拟机-jvm高级特性于最佳实践 第二版</li>
+</ol>
+</div><div class="post-copyright"><script type="text/javascript" src="/blog/js/copyright.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/blog/css/copyright.css"><p><span>版权声明：</span><p>除另有声明外，本博客文章均采用 <a target="_blank" rel="noopener" href="http://creativecommons.org/licenses/by-nc-sa/3.0/cn/"><b>知识共享(Creative Commons) 署名-非商业性使用-相同方式共享 3.0 中国大陆许可协议</b></a> 进行许可。</p></p></div><br><script type="text/javascript" src="/blog/js/share.js?v=1.0.0" async></script><a class="article-share-link" data-url="https://counter2015.github.io/blog/2019/02/24/jvm/" data-id="cl1jg9onw0011qjpv2qkr8l90" data-qrcode="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMYAAADGCAAAAACs8KCBAAACIElEQVR42u3aS27EIBAFwNz/0pNtpNGY1w0exVCsosTCLhYd+vPzE6/Xn/X++09Pvv/1087Xb1m2MDAwHst4Xa78md5BfMKU34uBgXEAI996bdBMju/6jRgYGBirfu4FcQwMDIz7Am6S4l4/g4GBgdFLYpMX947jq7k4BgbGAxl5qvn9n2/pb2BgYDyK8SquahDshcvyV2FgYGzNyANc8rl5wyA5mnJDFAMDY2vGfIsxf+YaX31ywfURAwPjUYyZVmIejqvlvHKZDwMD4wDGqublzIWvefnDwMDYlJE0DvMX9MpwM+EbAwPjBEb+0dUC3Eyprpl5Y2BgHMmo3i7vboIOjhgDA2NTRh4oZ8LoTBocHTQGBsYBjF6YywtteXsgb3AO/mNgYGBsyuiNcM0E2WXDFhgYGMcwqp/YG5vI98lDMAYGxjmMmYGtajo6M5AxSGIxMDC2Y+QNwrwQlgfoXoo7GLbAwMDYlNGbXkhCap6m5odY3gEDA2MLRrXslV8Q87Q2bzwMZkYwMDCOZOSrF+Pzi+kgScbAwDiAUU0dq8W1Owptg34sBgbGFow7Qmp1h/y8B5dCDAyMTRmrqut5aWwmTN/eJMDAwPjHjJmRi7VJb6/9gIGBcQ7jjhQ0b4Iuy8UxMDAwiqnmTEuyTMXAwMCIk8n8Upi3PKPdMDAwDmAkqebMYESVUR7jwMDA2JqRp46rGp/J5bJ6lcTAwNiU8Qs0ahkG+Cb7YwAAAABJRU5ErkJggg==">分享</a><div class="tags"><a href="/blog/tagsjvm"><i class="fa fa-tag">jvm</i></a></div><div class="post-nav"><a class="pre" href="/blog/2019/03/09/name-theroy/">命名杂谈</a><a class="next" href="/blog/2019/02/23/puzzle3/">Scala Puzzle 3.Location, Location, Location</a></div><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/sukkaw/disqusjs/dist/disqusjs.css"><script type="text/javascript" src="https://cdn.jsdelivr.net/gh/sukkaw/disqusjs/dist/disqus.js"></script><script type="text/javascript" id="disqus-count-script">$(function() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', '//disqus.com/next/config.json', true);
+  xhr.timeout = 2500;
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      $('.post-meta .post-comments-count').show();
+      var s = document.createElement('script');
+      s.id = 'dsq-count-scr';
+      s.src = 'https://counter2015.disqus.com/count.js';
+      s.async = true;
+      (document.head || document.body).appendChild(s);
+    }
+  };
+  xhr.ontimeout = function () { xhr.abort(); };
+  xhr.send(null);
+});
+</script><div class="comments" id="disqus_thread"><script type="text/javascript">// Load comments with DisqusJS
+function loadComments() {
+  window.dsqjs = new DisqusJS({
+    shortname: 'counter2015',
+    siteName: 'Not determined yet',
+    identifier: '2019/02/24/jvm/',
+    url: 'https://counter2015.github.io/blog/2019/02/24/jvm/',
+    title: 'StackoverFlow and JVM',
+    api: '',
+    apikey: '',
+    admin: '',
+    adminLabel: ''
+  });
+}
+// Lazy load {# Credit: https://github.com/theme-next/hexo-theme-next/blob/master/layout/_third-party/comments/disqus.swig #}
+(function () {
+  var offsetTop = document.getElementById('disqus_thread').offsetTop - window.innerHeight;
+  if (offsetTop <= 0) {
+    // Load directly when there's no scrollbar
+    window.addEventListener('load', loadComments, false);
+  } else {
+    var disqusScroll = function () {
+      // offsetTop may changes because of manually resizing browser window or lazy loading images
+      var offsetTop = document.getElementById('disqus_thread').offsetTop - window.innerHeight;
+      var scrollTop = window.scrollY;
+
+      // Pre-load comments a bit? (margin or anything else)
+      if (offsetTop - scrollTop < 60) {
+        window.removeEventListener('scroll', disqusScroll);
+        loadComments();
+      }
+    };
+    window.addEventListener('scroll', disqusScroll);
+  }
+})();
+// Scroll to comments automatically if #comment-xxx anchor specified
+window.addEventListener('load', function () {
+  // I don't know why, it just works.
+  window.setTimeout(function () {
+    if (location.hash.indexOf('#comment-') !== -1) {
+      document.getElementById('disqus_thread').scrollIntoView(true);
+    }
+  }, 100);
+}, false);
+</script></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="https://counter2015.github.io/blog"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Bugfix/">Bugfix</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/puzzles/">puzzles</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%85%B6%E4%BB%96/">其他</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E6%8A%80%E6%9C%AF/">技术</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E6%8A%80%E6%9C%AF/%E9%83%A8%E7%BD%B2/">部署</a></li></ul></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/Flag/" style="font-size: 15px;">Flag</a> <a href="/blog/tags/kafka/" style="font-size: 15px;">kafka</a> <a href="/blog/tags/hadoop/" style="font-size: 15px;">hadoop</a> <a href="/blog/tags/%E4%BC%9A%E8%AE%AE/" style="font-size: 15px;">会议</a> <a href="/blog/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/blog/tags/%E5%A4%87%E5%BF%98/" style="font-size: 15px;">备忘</a> <a href="/blog/tags/redis/" style="font-size: 15px;">redis</a> <a href="/blog/tags/giter8/" style="font-size: 15px;">giter8</a> <a href="/blog/tags/%E5%9B%BE%E5%BA%8A/" style="font-size: 15px;">图床</a> <a href="/blog/tags/confluent/" style="font-size: 15px;">confluent</a> <a href="/blog/tags/hbase/" style="font-size: 15px;">hbase</a> <a href="/blog/tags/Github-Actions/" style="font-size: 15px;">Github Actions</a> <a href="/blog/tags/Bing/" style="font-size: 15px;">Bing</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/jvm/" style="font-size: 15px;">jvm</a> <a href="/blog/tags/%E6%9D%82%E8%B0%88/" style="font-size: 15px;">杂谈</a> <a href="/blog/tags/scala/" style="font-size: 15px;">scala</a> <a href="/blog/tags/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" style="font-size: 15px;">读书笔记</a> <a href="/blog/tags/PostgreSQL/" style="font-size: 15px;">PostgreSQL</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/Manjaro/" style="font-size: 15px;">Manjaro</a> <a href="/blog/tags/Scalatra/" style="font-size: 15px;">Scalatra</a> <a href="/blog/tags/zookeeper/" style="font-size: 15px;">zookeeper</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/2020/05/10/github-action/">Github Actions 实战——下载每日Bing图片</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2020/04/19/scalatra9/">Scalatra in Action 9. 配置、编译和部署</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2020/01/21/manjaro/">Manjaro 安装配置</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2020/01/02/2019-end/">年终碎碎念和来年Flag</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/12/16/linux-io-scheduler/">Linux I/O调度器备忘</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/11/06/scalatra8/">Scalatra in Action 8. 测试工程师要了杯啤酒</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/08/26/scalatra7/">Scalatra in Action 7. 服务端模板</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/08/22/postgresql/">PostgreSQL 快速使用指南</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/06/30/scalatra6/">Scalatra in Action 6. 处理文件</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/04/29/bug2/">github pages微博图床图片无法显示</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-comment-o"> 最近评论</i></div><script type="text/javascript" src="//counter2015.disqus.com/recent_comments_widget.js?num_items=5&amp;hide_avatars=1&amp;avatar_size=32&amp;excerpt_length=20&amp;hide_mods=1"></script></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://wiki.hushhw.cn" title="hushhw's blog 身经百战见得多了" target="_blank">hushhw's blog 身经百战见得多了</a><ul></ul><a href="https://blog.iseki.space" title="isekiのNote" target="_blank">isekiのNote</a><ul></ul><a href="https://razertory.github.io" title="Razetory的技术博客" target="_blank">Razetory的技术博客</a><ul></ul><a href="https://blog.ajin.cloud" title="ajin的博客" target="_blank">ajin的博客</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2022 <a href="/blog/." rel="nofollow">Not determined yet.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.css"><script type="text/javascript" src="/blog/js/copycode.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/blog/css/copycode.css"><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=1.0.0"></script></div></body></html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="a personal blog"><title>Linux I/O调度器备忘 | Not determined yet</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/normalize.css/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/pure-min.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"><script src="https://www.googletagmanager.com/gtag/js?id=G-N73FWWZR9G" async></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-N73FWWZR9G');
+</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.css"><style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 6.1.0"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">Linux I/O调度器备忘</h1><a id="logo" href="/blog/.">Not determined yet</a><p class="description">知其强，守其弱，为天下菜，为天下菜，可以下饭。</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a><a href="/blog/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><div class="alert alert-danger" role="alert"><i class="fa fa-exclamation-triangle warning"> 本文发表的时间过于久远，其中的信息可能已经有所发展或者不再适用于现阶段</i></div><h1 class="post-title">Linux I/O调度器备忘</h1><div class="post-meta">2019-12-16<span> | </span><span class="category"><a href="/blog/categories/%E6%8A%80%E6%9C%AF/">技术</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 1.9k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 7</span><span class="post-meta-item-text"> 分钟</span></span></span></div><a class="disqus-comment-count" data-disqus-identifier="2019/12/16/linux-io-scheduler/" href="/blog/2019/12/16/linux-io-scheduler/#disqus_thread"></a><div class="post-content"><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>当程序写好了，需要对它的性能做一个压测，系统的瓶颈，简要来说可以分成</p>
+<ul>
+<li>CPU</li>
+<li>磁盘 I&#x2F;O</li>
+<li>网络 I&#x2F;O</li>
+</ul>
+<p>（这里没有考虑分布式情况下的高可用等问题）</p>
+<p>本文对于磁盘I&#x2F;O方面，就Linux I&#x2F;O调度器方面的知识做了点简单整理，作为备忘。</p>
+<h2 id="Linux-I-x2F-O-系统简介"><a href="#Linux-I-x2F-O-系统简介" class="headerlink" title="Linux I&#x2F;O 系统简介"></a>Linux I&#x2F;O 系统简介</h2><p>这一部分可以参见<a target="_blank" rel="noopener" href="https://www.ibm.com/developerworks/cn/linux/l-lo-io-scheduler-optimize-performance/index.html">IBM文档</a><sup id="fnref:1"><a href="#fn:1" rel="footnote">1</a></sup>，这里就不赘述了。</p>
+<p><img src="https://counter2015.com/picture/linux-io-scheduler-1.png"></p>
+<p>▲ 图片来源：IBM 《调整 Linux I&#x2F;O 调度器优化系统性能》</p>
+<h2 id="预备知识-磁盘"><a href="#预备知识-磁盘" class="headerlink" title="预备知识-磁盘"></a>预备知识-磁盘</h2><h3 id="机械硬盘-HDD"><a href="#机械硬盘-HDD" class="headerlink" title="机械硬盘(HDD)"></a>机械硬盘(HDD)</h3><p>机械硬盘以扇区为磁盘寻址的单位，读取数据时，需要先把磁臂移动到指定磁道，然后将扇区旋转到磁头下。</p>
+<p>这里有个经典的调度算法就是<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Elevator_algorithm">电梯(SCAN)调度算法</a></p>
+<h3 id="固态硬盘-SSD"><a href="#固态硬盘-SSD" class="headerlink" title="固态硬盘(SSD)"></a>固态硬盘(SSD)</h3><p> 固态用电压从晶体里储存读取数据，这方面来说，不会像HDD一样受到旋转速度的限制，不存在机械操作。</p>
+<p>引用一个不准(tong)确(su)的例子</p>
+<blockquote>
+<p>我给你举个特别不恰当的比方吧，因为我实在是想不出更恰当的了。</p>
+<p>抗日战争片看过吧？摇把子电话见过吧？这种电话是没有拨号盘的，那怎么用呢？</p>
+<p>首先你要摇电话上的把手，然后接线员会接你的电话，你跟接线员说我要接司令部，接线员就找到司令部的电话线接口，然后把你的电话线插！在！上！面！</p>
+<p>这就相当于是机械寻址。</p>
+<p>影响接线员速度的因素有：接线员手速（硬盘转速），接线员的数量（磁头数）。可以想象的是电话号码越多找目标电话号码越慢。因为需要一个一个找啊。</p>
+<p>而你现在打电话只需要拨个号，程控交换机就会帮你接好线路。这个寻找目标电话号码的任务你就可以认为是电子寻址。这种电子寻址几乎不会因为号码空间的大小而产生明显的不同。</p>
+<p> 关于固态硬盘的寻址原理和寻址速度的一个疑问？ - Zign的回答 - 知乎 <a target="_blank" rel="noopener" href="https://www.zhihu.com/question/58752580/answer/159003701">https://www.zhihu.com/question/58752580/answer/159003701</a> </p>
+</blockquote>
+<p>可以通过以下命令区分HDD和SSD</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">通过lsblk 查看, ROTA意思为rotational device, 0为假，1为真</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">lsblk -d -o name,rota</span></span><br><span class="line">NAME ROTA</span><br><span class="line">sda     0</span><br><span class="line">sdb     1</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">通过sys信息查看</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> /sys/block/sda/queue/rotational</span></span><br><span class="line">0</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> /sys/block/sdb/queue/rotational</span></span><br><span class="line">1</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">也可用用smartctl查看详细信息</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sudo smartctl -a /dev/sda</span></span><br></pre></td></tr></table></figure>
+
+<p>简单粗暴地来说，旋转的是机械硬盘，非旋转的是固态硬盘。</p>
+<h2 id="I-x2F-O调度器"><a href="#I-x2F-O调度器" class="headerlink" title="I&#x2F;O调度器"></a>I&#x2F;O调度器</h2><p>下面以<strong>CentOS</strong>为例</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">hostnamectl</span></span><br><span class="line">   Static hostname: ***</span><br><span class="line">         Icon name: ***</span><br><span class="line">           Chassis: ***</span><br><span class="line">        Machine ID: ***</span><br><span class="line">           Boot ID: ***</span><br><span class="line">  Operating System: CentOS Linux 7 (Core)</span><br><span class="line">       CPE OS Name: cpe:/o:centos:centos:7</span><br><span class="line">            Kernel: Linux 3.10.0-957.el7.x86_64</span><br><span class="line">      Architecture: x86-64</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">查看当前可用的调度器</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">dmesg | grep -i scheduler</span></span><br><span class="line">[    1.374555] io scheduler noop registered</span><br><span class="line">[    1.374558] io scheduler deadline registered (default)</span><br><span class="line">[    1.374594] io scheduler cfq registered</span><br><span class="line">[    1.374597] io scheduler mq-deadline registered</span><br><span class="line">[    1.374600] io scheduler kyber registered</span><br></pre></td></tr></table></figure>
+
+
+
+<p>可以看到，现在可用的调度器有5个</p>
+<ul>
+<li><p>NOOP</p>
+<p>全称为No Operation,中文名称电梯调度器，I&#x2F;O请求首先进入一个FIFO接受队列，然后合并后，从调度队列大致按照到达的先后依次进行操作，由于不需要对请求再次排序，这个调度方式和固态硬盘配合最好。</p>
+</li>
+<li><p>Deadline(默认使用)</p>
+<p>中文名称为截止时间调度器，它会把请求划分成读操作和写操作，它将读写操作分开处理。使用了四个队列，两个分别按处理读写，按初始扇区排序，另外两个队列为读&#x2F;写请求的，按最后截止时间排序的队列。默认情况下，读取请求的到期时间是500ms，而写入请求的到期时间是5s。它能避免有些请求长时间不被处理的情况。</p>
+</li>
+<li><p>CFQ</p>
+<p>CFQ全称Completely Fair Scheduler（<del>这是怎么缩写的</del>），中文名称完全公平调度器，它的主要目标是在所有进程间公平地分配I&#x2F;O带宽，为此，会使用大量(默认值为64)已经排序的队列来分别存储来自不同进程的请求。I&#x2F;O请求到达时，通过哈希函数对PID求值放入到相应标识的队列末尾，因此同一进程的请求总是会在同一队列中被依次处理。</p>
+</li>
+<li><p>MQ-Deadline</p>
+<p>适用于多线程版本的Deadline调度器， 该调度程序适用于大多数用例，但特别是那些读操作比写操作更频繁发生的用例。 </p>
+</li>
+<li><p>Kyber</p>
+<p>Kyber适用于快速多队列任务，它把I&#x2F;O请求分为两个队列，一个用于同步请求，一个用于异步请求。它通过限制发送到调度队列的I&#x2F;O操作，确保较高优先级的请求能快速被完成，可以通过设置延迟来调整等待时间，默认读操作是2ms,写操作是10ms，把这两个值调小，可以保证较低的延迟，但也会由于缺少合并，而影响到吞吐量。这方面资料很少，有兴趣的猛士可以看下<a target="_blank" rel="noopener" href="https://github.com/torvalds/linux/blob/master/block/kyber-iosched.c">源码</a>。</p>
+</li>
+</ul>
+<p>对于不同的场景下，<a target="_blank" rel="noopener" href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/performance_tuning_guide/sect-red_hat_enterprise_linux-performance_tuning_guide-storage_and_file_systems-configuration_tools">RedHat</a>有提供参考的配置</p>
+<table>
+<thead>
+<tr>
+<th align="left">Use case</th>
+<th align="left">Disk scheduler recommendation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Traditional HDD with a SCSI interface</td>
+<td align="left">Use <code>mq-deadline</code> or <code>bfq</code>.</td>
+</tr>
+<tr>
+<td align="left">High-performance SSD or a CPU-bound system with fast storage</td>
+<td align="left">Use <code>none</code>, especially when running enterprise applications. Alternatively, use <code>kyber</code>.</td>
+</tr>
+<tr>
+<td align="left">Desktop or interactive tasks</td>
+<td align="left">Use <code>bfq</code>.</td>
+</tr>
+<tr>
+<td align="left">Virtual guest</td>
+<td align="left">Use <code>mq-deadline</code>. With a multi-queue host bus adapter (HBA), use <code>none</code>.</td>
+</tr>
+</tbody></table>
+<p>渣翻下</p>
+<table>
+<thead>
+<tr>
+<th>使用场景</th>
+<th>推荐的磁盘调度方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>机械硬盘</td>
+<td><code>mq-deadline</code></td>
+</tr>
+<tr>
+<td>固态硬盘 | CPU绑定的快速存储设备</td>
+<td><code>none</code></td>
+</tr>
+<tr>
+<td>PC程序 | 交互任务</td>
+<td><code>bfq</code></td>
+</tr>
+<tr>
+<td>虚拟化</td>
+<td><code>mq-deadline</code>, 如果有FC HBA卡，用<code>none</code></td>
+</tr>
+</tbody></table>
+<p>具体的配置需要根据自己程序的读写特点分别测试，这个表只是个参考。</p>
+<h2 id="调度器的配置与切换"><a href="#调度器的配置与切换" class="headerlink" title="调度器的配置与切换"></a>调度器的配置与切换</h2><h3 id="I-x2F-O调度器的选择"><a href="#I-x2F-O调度器的选择" class="headerlink" title="I&#x2F;O调度器的选择"></a>I&#x2F;O调度器的选择</h3><p>不同版本启用的默认调度器不同，主要分为两类</p>
+<p>支持多队列的：<code>mq-deadline</code>, <code>kyber</code>, <code>noop</code></p>
+<p>不支持多队列的：<code>noop</code>, <code>cfq</code>, <code>deadline</code></p>
+<p>这两类配置无法同时启用</p>
+<p>同类配置中，I&#x2F;O调度器的切换不需要重启机器</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">修改I/O调度器</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> <span class="string">&quot;cfq&quot;</span> | sudo <span class="built_in">tee</span> /sys/block/sda/queue/scheduler</span></span><br></pre></td></tr></table></figure>
+
+<p>假如要切换到多队列调度器，操作稍微复杂点</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">修改grub配置文件</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sudo vim /etc/default/grub</span></span><br></pre></td></tr></table></figure>
+
+<p>在配置项<code>GRUB_CMDLINE_LINUX</code>的引号内，末尾添加<code>scsi_mod.use_blk_mq=1</code></p>
+<p>添加完成后，需要重新生成<code>grub2.cfg</code></p>
+<p>不同的设备类型，接下来输出的配置文件目录也不同，可以通过如下命令来确认设备类型</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">test</span> -d /sys/firmware/efi &amp;&amp; <span class="built_in">echo</span> <span class="string">&quot;UEFI&quot;</span> || <span class="built_in">echo</span> <span class="string">&quot;Legacy&quot;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>以<code>Legacy</code>设备为例(<code>UEFI</code>的配置可参见<a target="_blank" rel="noopener" href="https://abelsu7.top/2019/02/18/centos7-grub2/">此处</a>)</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">grub2-mkconfig -o /boot/grub2/grub.cfg</span></span><br><span class="line">Generating grub configuration file ...</span><br><span class="line">Found linux image: /boot/vmlinuz-3.10.0-862.el7.x86_64</span><br><span class="line">Found initrd image: /boot/initramfs-3.10.0-862.el7.x86_64.img</span><br><span class="line">Found linux image: /boot/vmlinuz-0-rescue-ffbf5b85fb92405ab2466889fe1358d2</span><br><span class="line">Found initrd image: /boot/initramfs-0-rescue-ffbf5b85fb92405ab2466889fe1358d2.img</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+
+<p>设置完成后，重启机器即可生效</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">sudo reboot</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> /sys/block/sda/queue/scheduler</span></span><br><span class="line">[mq-deadline] kyber none</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><p><a target="_blank" rel="noopener" href="https://wiki.ubuntu.com/Kernel/Reference/IOSchedulers">Ubuntu Wiki: IOSchedulers</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://blog.codeship.com/linux-io-scheduler-tuning/">Improving Linux System Performance with I&#x2F;O Scheduler Tuning</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://lwn.net/Articles/720675/">Two new block I&#x2F;O schedulers for 4.12</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://lwn.net/Articles/784267/">Improving the performance of the BFQ I&#x2F;O scheduler</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://unix.stackexchange.com/questions/65595/how-to-know-if-a-disk-is-an-ssd-or-an-hdd">StackExchange: how to know if a disk is an ssd or an hdd</a> </p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://www.ibm.com/developerworks/cn/linux/l-scheduler/index.html">IBM: Linux 调度器内幕</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/48963253">Manjaro Linux优化设置分享</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/CareySon/archive/2012/08/20/2647017.html">硬盘的原理以及SQL Server如何利用硬盘原理减少IO</a></p>
+</li>
+</ol>
+<div id="footnotes"><hr><div id="footnotelist"><ol style="list-style:none; padding-left: 0;"><li id="fn:1"><span style="display: inline-block; vertical-align: top; padding-right: 10px;">1.</span><span style="display: inline-block; vertical-align: top;">2022年，这篇文章的链接地址已经失效</span><a href="#fnref:1" rev="footnote"> ↩</a></li></ol></div></div></div><div class="post-copyright"><script type="text/javascript" src="/blog/js/copyright.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/blog/css/copyright.css"><p><span>版权声明：</span><p>除另有声明外，本博客文章均采用 <a target="_blank" rel="noopener" href="http://creativecommons.org/licenses/by-nc-sa/3.0/cn/"><b>知识共享(Creative Commons) 署名-非商业性使用-相同方式共享 3.0 中国大陆许可协议</b></a> 进行许可。</p></p></div><br><script type="text/javascript" src="/blog/js/share.js?v=1.0.0" async></script><a class="article-share-link" data-url="https://counter2015.github.io/blog/2019/12/16/linux-io-scheduler/" data-id="cl1jg9onv000xqjpv3u7je5gh" data-qrcode="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACr0lEQVR42u3aS44bMQwFQN//0pNtgIHlR1LsOED1qmH3hyUDEk3q9YqPn7+O5Nvk/PcTfj8tuffCgYeHhzcI/fzo8+fngTgHmgzQOZ63PwAeHh7eGi+ZrM/XJHPy+cp8yArx4OHh4X0Z7zxN5wl6lYSHh4f3f/HyBDd5fvXJeHh4eN/Dy0Oclyqqpd6Hai14eHh4MS/vIn3P+Up/Dw8PD2/cVU8m3KTRdW6J5YtQOVo8PDy8BV4+4eZJc7X1Nd/y9eFKPDw8vAVe8rf/1iaDallhciUeHh7eBi+Z4ieboqqfJJ8Xlgo8PDy8ZV6yMESt+rigUC09lAcFDw8Pb4FX3dg0b+FPCsT5t3h4eHjP8Krtq8kCUE3We5u98PDw8J7k5Wlr3ujKU+RJEv82pcbDw8O7xMvD6r2gd291w0FUhsDDw8O7xOs1nHobC/JEeVKYKPyGeHh4eAPepPnUK/tOzvNmGB4eHt4zvFuTdTUJ7jXGCsk3Hh4e3iVe9TV58t0bpt5S9HZQ8PDw8NZ41RZ+0tbqFV6ryfqHJ+Ph4eEt8KoFheoEPdmIMI8HDw8Pb4OXvPJWQElwyUA0lwQ8PDy8S7y8JJG/LB+CZIqfFIXx8PDwtnmvwbEXevXteHh4eM/wehN6tcXVK1JciwcPDw/vKi+ZrCflhrws24vnw114eHh4a7xeEaE6HNV7JxsR8PDw8J7h5SFWW1x54z8fiGho8PDw8K7yfopHkgRXC7j5ElIeODw8PLwFXi9tTUqx1cw2GZTqOR4eHt4eL18MkpLBre1T1xYGPDw8vDXevBR7NwXvFSDeLgx4eHh4/5TXS5d75eBqkwwPDw/vO3nVEmrO7m3nirYO4OHh4S3wqoWAfPtU78rzoBeScjw8PLwFXu8Pf74MTDB5KWR04OHh4aW8P1OH5ClRllcbAAAAAElFTkSuQmCC">分享</a><div class="tags"><a href="/blog/tags备忘"><i class="fa fa-tag">备忘</i></a><a href="/blog/tagsLinux"><i class="fa fa-tag">Linux</i></a></div><div class="post-nav"><a class="pre" href="/blog/2020/01/02/2019-end/">年终碎碎念和来年Flag</a><a class="next" href="/blog/2019/11/06/scalatra8/">Scalatra in Action 8. 测试工程师要了杯啤酒</a></div><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/sukkaw/disqusjs/dist/disqusjs.css"><script type="text/javascript" src="https://cdn.jsdelivr.net/gh/sukkaw/disqusjs/dist/disqus.js"></script><script type="text/javascript" id="disqus-count-script">$(function() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', '//disqus.com/next/config.json', true);
+  xhr.timeout = 2500;
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      $('.post-meta .post-comments-count').show();
+      var s = document.createElement('script');
+      s.id = 'dsq-count-scr';
+      s.src = 'https://counter2015.disqus.com/count.js';
+      s.async = true;
+      (document.head || document.body).appendChild(s);
+    }
+  };
+  xhr.ontimeout = function () { xhr.abort(); };
+  xhr.send(null);
+});
+</script><div class="comments" id="disqus_thread"><script type="text/javascript">// Load comments with DisqusJS
+function loadComments() {
+  window.dsqjs = new DisqusJS({
+    shortname: 'counter2015',
+    siteName: 'Not determined yet',
+    identifier: '2019/12/16/linux-io-scheduler/',
+    url: 'https://counter2015.github.io/blog/2019/12/16/linux-io-scheduler/',
+    title: 'Linux I/O调度器备忘',
+    api: '',
+    apikey: '',
+    admin: '',
+    adminLabel: ''
+  });
+}
+// Lazy load {# Credit: https://github.com/theme-next/hexo-theme-next/blob/master/layout/_third-party/comments/disqus.swig #}
+(function () {
+  var offsetTop = document.getElementById('disqus_thread').offsetTop - window.innerHeight;
+  if (offsetTop <= 0) {
+    // Load directly when there's no scrollbar
+    window.addEventListener('load', loadComments, false);
+  } else {
+    var disqusScroll = function () {
+      // offsetTop may changes because of manually resizing browser window or lazy loading images
+      var offsetTop = document.getElementById('disqus_thread').offsetTop - window.innerHeight;
+      var scrollTop = window.scrollY;
+
+      // Pre-load comments a bit? (margin or anything else)
+      if (offsetTop - scrollTop < 60) {
+        window.removeEventListener('scroll', disqusScroll);
+        loadComments();
+      }
+    };
+    window.addEventListener('scroll', disqusScroll);
+  }
+})();
+// Scroll to comments automatically if #comment-xxx anchor specified
+window.addEventListener('load', function () {
+  // I don't know why, it just works.
+  window.setTimeout(function () {
+    if (location.hash.indexOf('#comment-') !== -1) {
+      document.getElementById('disqus_thread').scrollIntoView(true);
+    }
+  }, 100);
+}, false);
+</script></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="https://counter2015.github.io/blog"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Bugfix/">Bugfix</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/puzzles/">puzzles</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%85%B6%E4%BB%96/">其他</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E6%8A%80%E6%9C%AF/">技术</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E6%8A%80%E6%9C%AF/%E9%83%A8%E7%BD%B2/">部署</a></li></ul></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/Flag/" style="font-size: 15px;">Flag</a> <a href="/blog/tags/kafka/" style="font-size: 15px;">kafka</a> <a href="/blog/tags/hadoop/" style="font-size: 15px;">hadoop</a> <a href="/blog/tags/%E4%BC%9A%E8%AE%AE/" style="font-size: 15px;">会议</a> <a href="/blog/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/blog/tags/%E5%A4%87%E5%BF%98/" style="font-size: 15px;">备忘</a> <a href="/blog/tags/redis/" style="font-size: 15px;">redis</a> <a href="/blog/tags/giter8/" style="font-size: 15px;">giter8</a> <a href="/blog/tags/%E5%9B%BE%E5%BA%8A/" style="font-size: 15px;">图床</a> <a href="/blog/tags/confluent/" style="font-size: 15px;">confluent</a> <a href="/blog/tags/hbase/" style="font-size: 15px;">hbase</a> <a href="/blog/tags/Github-Actions/" style="font-size: 15px;">Github Actions</a> <a href="/blog/tags/Bing/" style="font-size: 15px;">Bing</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/jvm/" style="font-size: 15px;">jvm</a> <a href="/blog/tags/%E6%9D%82%E8%B0%88/" style="font-size: 15px;">杂谈</a> <a href="/blog/tags/scala/" style="font-size: 15px;">scala</a> <a href="/blog/tags/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" style="font-size: 15px;">读书笔记</a> <a href="/blog/tags/PostgreSQL/" style="font-size: 15px;">PostgreSQL</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/Manjaro/" style="font-size: 15px;">Manjaro</a> <a href="/blog/tags/Scalatra/" style="font-size: 15px;">Scalatra</a> <a href="/blog/tags/zookeeper/" style="font-size: 15px;">zookeeper</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/2020/05/10/github-action/">Github Actions 实战——下载每日Bing图片</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2020/04/19/scalatra9/">Scalatra in Action 9. 配置、编译和部署</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2020/01/21/manjaro/">Manjaro 安装配置</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2020/01/02/2019-end/">年终碎碎念和来年Flag</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/12/16/linux-io-scheduler/">Linux I/O调度器备忘</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/11/06/scalatra8/">Scalatra in Action 8. 测试工程师要了杯啤酒</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/08/26/scalatra7/">Scalatra in Action 7. 服务端模板</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/08/22/postgresql/">PostgreSQL 快速使用指南</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/06/30/scalatra6/">Scalatra in Action 6. 处理文件</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/04/29/bug2/">github pages微博图床图片无法显示</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-comment-o"> 最近评论</i></div><script type="text/javascript" src="//counter2015.disqus.com/recent_comments_widget.js?num_items=5&amp;hide_avatars=1&amp;avatar_size=32&amp;excerpt_length=20&amp;hide_mods=1"></script></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://wiki.hushhw.cn" title="hushhw's blog 身经百战见得多了" target="_blank">hushhw's blog 身经百战见得多了</a><ul></ul><a href="https://blog.iseki.space" title="isekiのNote" target="_blank">isekiのNote</a><ul></ul><a href="https://razertory.github.io" title="Razetory的技术博客" target="_blank">Razetory的技术博客</a><ul></ul><a href="https://blog.ajin.cloud" title="ajin的博客" target="_blank">ajin的博客</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2022 <a href="/blog/." rel="nofollow">Not determined yet.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.css"><script type="text/javascript" src="/blog/js/copycode.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/blog/css/copycode.css"><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=1.0.0"></script></div></body></html>

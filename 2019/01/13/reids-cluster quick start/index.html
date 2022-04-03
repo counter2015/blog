@@ -1,0 +1,279 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="a personal blog"><title>Redis集群快速搭建指南 | Not determined yet</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=1.0.0"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/normalize.css/normalize.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/pure-min.min.css"><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/purecss/build/grids-responsive-min.css"><link rel="stylesheet" href="//cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"><script src="https://www.googletagmanager.com/gtag/js?id=G-N73FWWZR9G" async></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-N73FWWZR9G');
+</script><script type="text/javascript" src="//cdn.jsdelivr.net/npm/clipboard/dist/clipboard.min.js"></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.js"></script><link rel="stylesheet" href="//cdn.jsdelivr.net/gh/codeseven/toastr/build/toastr.min.css"><style type="text/css">
+.spoiler {
+  display: inline-flex;
+}
+p.spoiler {
+  display: flex;
+}
+.spoiler a {
+  pointer-events: none;
+}
+.spoiler-blur, .spoiler-blur > * {
+  transition: text-shadow .5s ease;
+}
+.spoiler .spoiler-blur, .spoiler .spoiler-blur > * {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 0 0 10px grey;
+  cursor: pointer;
+}
+.spoiler .spoiler-blur:hover, .spoiler .spoiler-blur:hover > * {
+  text-shadow: 0 0 5px grey;
+}
+.spoiler-box, .spoiler-box > * {
+  transition: color .5s ease,
+  background-color .5s ease;
+}
+.spoiler .spoiler-box, .spoiler .spoiler-box > * {
+  color: black;
+  background-color: black;
+  text-shadow: none;
+}</style><meta name="generator" content="Hexo 6.1.0"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">Redis集群快速搭建指南</h1><a id="logo" href="/blog/.">Not determined yet</a><p class="description">知其强，守其弱，为天下菜，为天下菜，可以下饭。</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a><a href="/blog/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><div class="alert alert-danger" role="alert"><i class="fa fa-exclamation-triangle warning"> 本文发表的时间过于久远，其中的信息可能已经有所发展或者不再适用于现阶段</i></div><h1 class="post-title">Redis集群快速搭建指南</h1><div class="post-meta">2019-01-13<span> | </span><span class="category"><a href="/blog/categories/%E6%8A%80%E6%9C%AF/">技术</a></span><script src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script><span id="busuanzi_container_page_pv"> | <span id="busuanzi_value_page_pv"></span><span> 阅读</span></span><span class="post-time"><span class="post-meta-item-text"> | </span><span class="post-meta-item-icon"><i class="fa fa-keyboard-o"></i><span class="post-count"> 1.8k</span><span class="post-meta-item-text"> 字</span></span></span><span class="post-time"> | <span class="post-meta-item-icon"><i class="fa fa-clock-o"></i><span class="post-count"> 8</span><span class="post-meta-item-text"> 分钟</span></span></span></div><a class="disqus-comment-count" data-disqus-identifier="2019/01/13/reids-cluster quick start/" href="/blog/2019/01/13/reids-cluster%20quick%20start/#disqus_thread"></a><div class="post-content"><blockquote>
+<p><strong>WARNING</strong>  文章的部分内容可能已经<strong>严重</strong>过时，请酌情食用。</p>
+</blockquote>
+<h2 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h2><p>这里以3.2.1版本为例<br>下载地址:<a target="_blank" rel="noopener" href="http://download.redis.io/releases/">http://download.redis.io/releases/</a></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> ~/installs</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">wget http://download.redis.io/releases/redis-3.2.1.tar.gz</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">tar -zxf redis-3.2.1.tar.gz</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> redis-3.2.1</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">make</span></span><br></pre></td></tr></table></figure>
+
+<p>编译完成后，我们只需要以下几个文件就能启动一个redis客户端</p>
+<ul>
+<li>启动服务器所需的<code>src/redis-server</code></li>
+<li>redis命令行<code>src/redis-cli</code></li>
+<li>配置文件<code>redis.conf</code></li>
+<li>集群配置工具<code>redis-trib.rb</code></li>
+</ul>
+<p>将这三个文件复制到同一个目录下</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">mkdir</span> ~/bin/redis-3.2.1</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cp</span> src/redis-server \</span></span><br><span class="line"><span class="language-bash">     src/redis-cli \</span></span><br><span class="line"><span class="language-bash">     src/redis-trib.rb \</span></span><br><span class="line"><span class="language-bash">     redis.conf ~/bin/redis-3.2.1/</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> ~/bin/redis-3.2.1/</span></span><br></pre></td></tr></table></figure>
+
+<p>快速示例</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">./redis-server</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">./redis-cli</span></span><br><span class="line">127.0.0.1:6379&gt; set 1 1</span><br><span class="line">OK</span><br><span class="line">127.0.0.1:6379&gt; get 1</span><br><span class="line">&quot;1&quot;</span><br></pre></td></tr></table></figure>
+
+<p>以上形式启动的redis有几个问题:</p>
+<ul>
+<li>redis服务运行在前台</li>
+<li>外部程序无法访问到redis</li>
+</ul>
+<h2 id="单机配置"><a href="#单机配置" class="headerlink" title="单机配置"></a>单机配置</h2><p>对于第一个问题,将配置文件做如下修改</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># 设置启动方式为后台启动</span><br><span class="line">daemonize yes</span><br></pre></td></tr></table></figure>
+
+<p>对于第二个问题</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 注释掉该行</span><br><span class="line"># bind 127.0.0.1</span><br><span class="line"># 关闭保护模式</span><br><span class="line">protected-mode no</span><br></pre></td></tr></table></figure>
+
+<p>数据持久化AOF开启，关于AOF的详细解释可以查看文末的参考资料</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">appendonly yes</span><br></pre></td></tr></table></figure>
+
+<p>其他优化，移动了一些文件的位置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pidfile redis.pid</span><br><span class="line">logfile redis.log</span><br></pre></td></tr></table></figure>
+
+<p>安全性，禁用部分高危命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">rename-command FLUSHALL &quot;&quot;</span><br><span class="line">rename-command FLUSHDB &quot;&quot;</span><br><span class="line">rename-command CONFIG &quot;&quot;</span><br></pre></td></tr></table></figure>
+
+<p>至此，单机模式的配置文件修改完成</p>
+<h2 id="集群配置"><a href="#集群配置" class="headerlink" title="集群配置"></a>集群配置</h2><p>redis3和4都能用类似方法安装，redis5开始使用<code>redis-cli</code>安装集群,具体可以参照文末的参考资料。</p>
+<p>一个较简洁的Redis集群配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">port 7000</span><br><span class="line">cluster-enabled yes</span><br><span class="line">cluster-config-file nodes-7000.conf</span><br><span class="line">cluster-node-timeout 15000</span><br><span class="line">appendonly yes</span><br><span class="line">daemonize yes</span><br></pre></td></tr></table></figure>
+<p>需要注意的是，最小的Redis集群需要配置3个主节点，3个从节点。</p>
+<p>为此，需要创建一个新目录，并以端口命名创建以下目录。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">mkdir</span> cluster-test</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> cluster-test</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">mkdir</span> 7000 7001 7002 7003 7004 7005</span></span><br></pre></td></tr></table></figure>
+
+<p>给每个文件夹添加配置文件，内容就是之前那简单的几行，注意修改<code>port</code>。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> 7000</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">vim redis.conf</span></span><br></pre></td></tr></table></figure>
+
+<p>将之前我们编译好的<code>redis-server</code>复制到相应位置</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> ..</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cp</span> ../redis-server .</span></span><br></pre></td></tr></table></figure>
+
+<p>在每个端口启动redis,以7000为例，这里可能需要开启多个控制台窗口</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> 7000</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">../redis-server ./redis.conf</span></span><br></pre></td></tr></table></figure>
+
+<p>现在我们将所有的redis实例都启动起来了，还需要配置些信息才能把它们搞成集群</p>
+<p>还记得我们之前复制的<code>redis-trib.rb</code>吗？现在就是用它的时候了。</p>
+<p><code>rb</code>文件是用Ruby编写的，所以需要先安装Ruby<br>直接用yum安装并简单验证下</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cp</span> ../redis-trib.rb .</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">yum install ruby</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">ruby -v</span></span><br><span class="line">ruby 2.0.0p648 (2015-12-16) [x86_64-linux]</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">gem</span></span><br><span class="line">RubyGems is a sophisticated package manager for Ruby.  This is a</span><br><span class="line">basic help message containing pointers to more information.</span><br><span class="line"></span><br><span class="line">  Usage:</span><br><span class="line">    gem -h/--help</span><br><span class="line">    gem -v/--version</span><br><span class="line">    gem command [arguments...] [options...]</span><br><span class="line"></span><br><span class="line">  Examples:</span><br><span class="line">    gem install rake</span><br><span class="line">    gem list --local</span><br><span class="line">    gem build package.gemspec</span><br><span class="line">    gem help install</span><br><span class="line"></span><br><span class="line">  Further help:</span><br><span class="line">    gem help commands            list all &#x27;gem&#x27; commands</span><br><span class="line">    gem help examples            show some examples of usage</span><br><span class="line">    gem help platforms           show information about platforms</span><br><span class="line">    gem help &lt;COMMAND&gt;           show help on COMMAND</span><br><span class="line">                                   (e.g. &#x27;gem help install&#x27;)</span><br><span class="line">    gem server                   present a web page at</span><br><span class="line">                                 http://localhost:8808/</span><br><span class="line">                                 with info about installed gems</span><br><span class="line">  Further information:</span><br><span class="line">    http://guides.rubygems.org</span><br></pre></td></tr></table></figure>
+<p>为了能正常运行<code>redis-trib.rb</code>,需要安装redis在ruby上的支持程序</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">gem install redis -v 3.2.1</span></span><br></pre></td></tr></table></figure>
+<p>使用<code>redis-trib.rb</code>创建集群</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">./redis-trib.rb create --replicas 1 127.0.0.1:7000 127.0.0.1:7001 \</span></span><br><span class="line"><span class="language-bash">&gt; 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005</span></span><br><span class="line"><span class="meta prompt_">&gt;</span><span class="language-bash">&gt;&gt; Creating cluster</span></span><br><span class="line"><span class="meta prompt_">&gt;</span><span class="language-bash">&gt;&gt; Performing <span class="built_in">hash</span> slots allocation on 6 nodes...</span></span><br><span class="line">Using 3 masters:</span><br><span class="line">127.0.0.1:7000</span><br><span class="line">127.0.0.1:7001</span><br><span class="line">127.0.0.1:7002</span><br><span class="line">Adding replica 127.0.0.1:7003 to 127.0.0.1:7000</span><br><span class="line">Adding replica 127.0.0.1:7004 to 127.0.0.1:7001</span><br><span class="line">Adding replica 127.0.0.1:7005 to 127.0.0.1:7002</span><br><span class="line">M: 174387047806fa01aa40f21d81e483c6750d46a9 127.0.0.1:7000</span><br><span class="line">   slots:0-5460 (5461 slots) master</span><br><span class="line">M: 30e6454bc49df7972aa0bb3622afc1de18a9cc62 127.0.0.1:7001</span><br><span class="line">   slots:5461-10922 (5462 slots) master</span><br><span class="line">M: 83bfb46ec9d65d075b4dad0090e7b872526bc6d2 127.0.0.1:7002</span><br><span class="line">   slots:10923-16383 (5461 slots) master</span><br><span class="line">S: 293680aab55d0cec9e73f527f16efeea9bee552c 127.0.0.1:7003</span><br><span class="line">   replicates 174387047806fa01aa40f21d81e483c6750d46a9</span><br><span class="line">S: df83916424dd4b810b41187d24422745de2ee5ab 127.0.0.1:7004</span><br><span class="line">   replicates 30e6454bc49df7972aa0bb3622afc1de18a9cc62</span><br><span class="line">S: 5a11ad3086b3d43ddbed4628459138c7b01ad2eb 127.0.0.1:7005</span><br><span class="line">   replicates 83bfb46ec9d65d075b4dad0090e7b872526bc6d2</span><br><span class="line">Can I set the above configuration? (type &#x27;yes&#x27; to accept): yes</span><br><span class="line"><span class="meta prompt_">&gt;</span><span class="language-bash">&gt;&gt; Nodes configuration updated</span></span><br><span class="line"><span class="meta prompt_">&gt;</span><span class="language-bash">&gt;&gt; Assign a different config epoch to each node</span></span><br><span class="line"><span class="meta prompt_">&gt;</span><span class="language-bash">&gt;&gt; Sending CLUSTER MEET messages to <span class="built_in">join</span> the cluster</span></span><br><span class="line">Waiting for the cluster to join....</span><br><span class="line"><span class="meta prompt_">&gt;</span><span class="language-bash">&gt;&gt; Performing Cluster Check (using node 127.0.0.1:7000)</span></span><br><span class="line">M: 174387047806fa01aa40f21d81e483c6750d46a9 127.0.0.1:7000</span><br><span class="line">   slots:0-5460 (5461 slots) master</span><br><span class="line">M: 30e6454bc49df7972aa0bb3622afc1de18a9cc62 127.0.0.1:7001</span><br><span class="line">   slots:5461-10922 (5462 slots) master</span><br><span class="line">M: 83bfb46ec9d65d075b4dad0090e7b872526bc6d2 127.0.0.1:7002</span><br><span class="line">   slots:10923-16383 (5461 slots) master</span><br><span class="line">M: 293680aab55d0cec9e73f527f16efeea9bee552c 127.0.0.1:7003</span><br><span class="line">   slots: (0 slots) master</span><br><span class="line">   replicates 174387047806fa01aa40f21d81e483c6750d46a9</span><br><span class="line">M: df83916424dd4b810b41187d24422745de2ee5ab 127.0.0.1:7004</span><br><span class="line">   slots: (0 slots) master</span><br><span class="line">   replicates 30e6454bc49df7972aa0bb3622afc1de18a9cc62</span><br><span class="line">M: 5a11ad3086b3d43ddbed4628459138c7b01ad2eb 127.0.0.1:7005</span><br><span class="line">   slots: (0 slots) master</span><br><span class="line">   replicates 83bfb46ec9d65d075b4dad0090e7b872526bc6d2</span><br><span class="line">[OK] All nodes agree about slots configuration.</span><br><span class="line"><span class="meta prompt_">&gt;</span><span class="language-bash">&gt;&gt; Check <span class="keyword">for</span> open slots...</span></span><br><span class="line"><span class="meta prompt_">&gt;</span><span class="language-bash">&gt;&gt; Check slots coverage...</span></span><br><span class="line">[OK] All 16384 slots covered.</span><br></pre></td></tr></table></figure>
+
+<p>至此，集群的搭建工作就基本完成了，可以根据自己的需要修改配置文件。</p>
+<p><del><strong>鬼知道为啥hexo把配置文件里的英文标点转换成了中文标点了，食用时注意替换</strong></del></p>
+<p> <a target="_blank" rel="noopener" href="https://counter2015.com/2019/01/18/bug1">
+  <span class="spoiler" onclick="this.classList.toggle('spoiler')">
+    <span class="spoiler-blur ">问题已解决</span>
+  </span></a></p>
+<details>
+  <summary>端口为7000节点的完整配置文件示例如下(去除注释): </summary>
+  <p></p>
+  <pre><code>
+protected-mode no
+port 7000
+tcp-backlog 511
+timeout 0
+tcp-keepalive 300
+daemonize yes
+supervised no
+pidfile redis.pid
+loglevel notice
+logfile redis.log
+databases 16
+save 900 1
+save 300 10
+save 60 10000
+stop-writes-on-bgsave-error yes
+rdbcompression yes
+rdbchecksum yes
+dbfilename dump.rdb
+dir ./
+slave-serve-stale-data yes
+slave-read-only yes
+repl-diskless-sync no
+repl-diskless-sync-delay 5
+repl-disable-tcp-nodelay no
+slave-priority 100
+appendonly yes
+appendfilename "appendonly.aof"
+appendfsync everysec
+no-appendfsync-on-rewrite no
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+aof-load-truncated yes
+lua-time-limit 5000
+cluster-enabled yes
+cluster-config-file nodes-7000.conf
+cluster-node-timeout 15000
+slowlog-log-slower-than 10000
+slowlog-max-len 128
+latency-monitor-threshold 0
+notify-keyspace-events ""
+hash-max-ziplist-entries 512
+hash-max-ziplist-value 64
+list-max-ziplist-size -2
+list-compress-depth 0
+set-max-intset-entries 512
+zset-max-ziplist-entries 128
+zset-max-ziplist-value 64
+hll-sparse-max-bytes 3000
+activerehashing yes
+client-output-buffer-limit normal 0 0 0
+client-output-buffer-limit slave 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+hz 10
+aof-rewrite-incremental-fsync yes
+rename-command FLUSHALL ""
+rename-command FLUSHDB ""
+rename-command CONFIG ""
+  </code>  </pre>
+</details>
+运行时某个端口的目录如下
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> 7000</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">ls</span></span></span><br><span class="line">appendonly.aof  dump.rdb  nodes-7000.conf  redis.conf  redis.log  redis.pid</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>文件名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>appendonly.aof</td>
+<td>AOF记录文件，记录redis的每次操作，用于持久化</td>
+</tr>
+<tr>
+<td>dump.rdb</td>
+<td>Redis快照文件，用于持久化</td>
+</tr>
+<tr>
+<td>nodes-7000.conf</td>
+<td>节点的状态文件，自动生成，无需改动</td>
+</tr>
+<tr>
+<td>redis.conf</td>
+<td>Redis配置文件</td>
+</tr>
+<tr>
+<td>redis.log</td>
+<td>Redis日志文件</td>
+</tr>
+<tr>
+<td>redis.pid</td>
+<td>记录Redis示例运行的pid</td>
+</tr>
+</tbody></table>
+<p>集群的简单测试</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cd</span> redis-3.2.1/cluster-test</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">ls</span></span></span><br><span class="line">7000  7001  7002  7003  7004  7005  redis-cli  redis-server  redis-trib.rb</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash">./redis-cli -c -p 7000</span></span><br><span class="line">127.0.0.1:7000&gt; set a 1</span><br><span class="line"><span class="meta prompt_">-&gt; </span><span class="language-bash">Redirected to slot [15495] located at 127.0.0.1:7002</span></span><br><span class="line">OK</span><br><span class="line">127.0.0.1:7002&gt; set b 2</span><br><span class="line"><span class="meta prompt_">-&gt; </span><span class="language-bash">Redirected to slot [3300] located at 127.0.0.1:7000</span></span><br><span class="line">OK</span><br><span class="line">127.0.0.1:7000&gt; get a</span><br><span class="line"><span class="meta prompt_">-&gt; </span><span class="language-bash">Redirected to slot [15495] located at 127.0.0.1:7002</span></span><br><span class="line">&quot;1&quot;</span><br><span class="line">127.0.0.1:7002&gt; get b</span><br><span class="line"><span class="meta prompt_">-&gt; </span><span class="language-bash">Redirected to slot [3300] located at 127.0.0.1:7000</span></span><br><span class="line">&quot;2&quot;</span><br><span class="line">127.0.0.1:7000&gt; get b</span><br><span class="line">&quot;2&quot;</span><br><span class="line">127.0.0.1:7000&gt; </span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a target="_blank" rel="noopener" href="https://redis.io/topics/cluster-tutorial">官方文档 cluster-tutorial</a></li>
+<li><a target="_blank" rel="noopener" href="https://redis.io/topics/persistence">官方文档 persistence</a></li>
+<li><a target="_blank" rel="noopener" href="https://redis.io/topics/security">官方文档 security</a></li>
+<li><a target="_blank" rel="noopener" href="https://redis.io/download">官方文档 download</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_35946990/article/details/78957618">Redis-使用redis-trib构建集群</a></li>
+</ol>
+</div><div class="post-copyright"><script type="text/javascript" src="/blog/js/copyright.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/blog/css/copyright.css"><p><span>版权声明：</span><p>除另有声明外，本博客文章均采用 <a target="_blank" rel="noopener" href="http://creativecommons.org/licenses/by-nc-sa/3.0/cn/"><b>知识共享(Creative Commons) 署名-非商业性使用-相同方式共享 3.0 中国大陆许可协议</b></a> 进行许可。</p></p></div><br><script type="text/javascript" src="/blog/js/share.js?v=1.0.0" async></script><a class="article-share-link" data-url="https://counter2015.github.io/blog/2019/01/13/reids-cluster%20quick%20start/" data-id="cl1jg9ooa002bqjpv9lvdabsi" data-qrcode="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAN4AAADeCAAAAAB3DOFrAAACvUlEQVR42u3awW7CMBAE0P7/T9NrJRSY2Y1pK72cUAHjl0r2ZrxfX/H1eLp+/v359fN3n8e5+lY7/g0XHh4e3nrqV5N4/nsy8hXsag45+/Wc8fDw8E7zksm1y/fmpuS/+MaCh4eH98d4szJ3BsDDw8P777wZYBZVJAU3Hh4e3ud5SRjRBg1tGLFh35C14OHh4cW8WSD7u6+PnO/h4eHhrU/V83aB18v65qhsc+Hh4eGd4OVTeV3Utp9MiuC8HH8TguDh4eHdytsXsrN3k9arPIC4nDMeHh7eYV6CTGLTdupts2xxi/Hw8PAO8NpJJDclX+hfj5aPWZTdeHh4eDfxZrHsLLrdbzDDzQAPDw/vJl7+2J8s4nlwkN/cWRx8eb6Hh4eHt+blhWz7mXxC0eTK8n01dTw8PLy4aWD28D8roNvP1N0QeHh4eMd4CSNZ9DcHV7Mwov0n4eHh4Z3gzbLQ5Ac2R195gX5bMwEeHh7empfEAS1pH/tuSnA8PDy8PS+PbvNB8yat2WZQUPHw8PAO8GZl8SO4NgFEe4NWiTUeHh7egpc88LcbSXLAlv9WG47g4eHhfZ63WbJnMUSx3OcNBHh4eHg38doWqNniPtsMkt96s53g4eHhHeDNjuTzwndWZLfvvtmc8PDw8A7w8qB20yiwX+LbwzA8PDy8c7zk+Gr/7iwfaNu/it4HPDw8vDVvFg20G8PsBuVzjnoi8PDw8G7iJY/0edPV5uC/WPSTDQMPDw/vVt6jvPLlPi+U82/VZT0eHh7eAV671G42g3ZrSULbJOzAw8PDO8HbT7otoGeBch4W4+Hh4X2G1zY2zW7TJiyeNWDh4eHh/WXe7HhsFt0Oz/fw8PDwfomXN1flZfFszKhkx8PDwzvGa4OAuw6u2oW+Hh8PDw/vAK/u0hot8W1g0TZprS48PDy8lPcNH8fFOq655LsAAAAASUVORK5CYII=">分享</a><div class="tags"><a href="/blog/tagsredis"><i class="fa fa-tag">redis</i></a></div><div class="post-nav"><a class="pre" href="/blog/2019/01/19/bug1/">单引号显示为中文引号</a><a class="next" href="/blog/2019/01/06/puzzle2/">Scala Puzzle 2.UPSTAIRS downstairs</a></div><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/sukkaw/disqusjs/dist/disqusjs.css"><script type="text/javascript" src="https://cdn.jsdelivr.net/gh/sukkaw/disqusjs/dist/disqus.js"></script><script type="text/javascript" id="disqus-count-script">$(function() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', '//disqus.com/next/config.json', true);
+  xhr.timeout = 2500;
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      $('.post-meta .post-comments-count').show();
+      var s = document.createElement('script');
+      s.id = 'dsq-count-scr';
+      s.src = 'https://counter2015.disqus.com/count.js';
+      s.async = true;
+      (document.head || document.body).appendChild(s);
+    }
+  };
+  xhr.ontimeout = function () { xhr.abort(); };
+  xhr.send(null);
+});
+</script><div class="comments" id="disqus_thread"><script type="text/javascript">// Load comments with DisqusJS
+function loadComments() {
+  window.dsqjs = new DisqusJS({
+    shortname: 'counter2015',
+    siteName: 'Not determined yet',
+    identifier: '2019/01/13/reids-cluster quick start/',
+    url: 'https://counter2015.github.io/blog/2019/01/13/reids-cluster quick start/',
+    title: 'Redis集群快速搭建指南',
+    api: '',
+    apikey: '',
+    admin: '',
+    adminLabel: ''
+  });
+}
+// Lazy load {# Credit: https://github.com/theme-next/hexo-theme-next/blob/master/layout/_third-party/comments/disqus.swig #}
+(function () {
+  var offsetTop = document.getElementById('disqus_thread').offsetTop - window.innerHeight;
+  if (offsetTop <= 0) {
+    // Load directly when there's no scrollbar
+    window.addEventListener('load', loadComments, false);
+  } else {
+    var disqusScroll = function () {
+      // offsetTop may changes because of manually resizing browser window or lazy loading images
+      var offsetTop = document.getElementById('disqus_thread').offsetTop - window.innerHeight;
+      var scrollTop = window.scrollY;
+
+      // Pre-load comments a bit? (margin or anything else)
+      if (offsetTop - scrollTop < 60) {
+        window.removeEventListener('scroll', disqusScroll);
+        loadComments();
+      }
+    };
+    window.addEventListener('scroll', disqusScroll);
+  }
+})();
+// Scroll to comments automatically if #comment-xxx anchor specified
+window.addEventListener('load', function () {
+  // I don't know why, it just works.
+  window.setTimeout(function () {
+    if (location.hash.indexOf('#comment-') !== -1) {
+      document.getElementById('disqus_thread').scrollIntoView(true);
+    }
+  }, 100);
+}, false);
+</script></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"/><input type="hidden" name="sitesearch" value="https://counter2015.github.io/blog"/></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Bugfix/">Bugfix</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/puzzles/">puzzles</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%85%B6%E4%BB%96/">其他</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E6%8A%80%E6%9C%AF/">技术</a><ul class="category-list-child"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E6%8A%80%E6%9C%AF/%E9%83%A8%E7%BD%B2/">部署</a></li></ul></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/Flag/" style="font-size: 15px;">Flag</a> <a href="/blog/tags/kafka/" style="font-size: 15px;">kafka</a> <a href="/blog/tags/hadoop/" style="font-size: 15px;">hadoop</a> <a href="/blog/tags/%E4%BC%9A%E8%AE%AE/" style="font-size: 15px;">会议</a> <a href="/blog/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/blog/tags/%E5%A4%87%E5%BF%98/" style="font-size: 15px;">备忘</a> <a href="/blog/tags/redis/" style="font-size: 15px;">redis</a> <a href="/blog/tags/giter8/" style="font-size: 15px;">giter8</a> <a href="/blog/tags/%E5%9B%BE%E5%BA%8A/" style="font-size: 15px;">图床</a> <a href="/blog/tags/confluent/" style="font-size: 15px;">confluent</a> <a href="/blog/tags/hbase/" style="font-size: 15px;">hbase</a> <a href="/blog/tags/Github-Actions/" style="font-size: 15px;">Github Actions</a> <a href="/blog/tags/Bing/" style="font-size: 15px;">Bing</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/jvm/" style="font-size: 15px;">jvm</a> <a href="/blog/tags/%E6%9D%82%E8%B0%88/" style="font-size: 15px;">杂谈</a> <a href="/blog/tags/scala/" style="font-size: 15px;">scala</a> <a href="/blog/tags/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" style="font-size: 15px;">读书笔记</a> <a href="/blog/tags/PostgreSQL/" style="font-size: 15px;">PostgreSQL</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/Manjaro/" style="font-size: 15px;">Manjaro</a> <a href="/blog/tags/Scalatra/" style="font-size: 15px;">Scalatra</a> <a href="/blog/tags/zookeeper/" style="font-size: 15px;">zookeeper</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/2020/05/10/github-action/">Github Actions 实战——下载每日Bing图片</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2020/04/19/scalatra9/">Scalatra in Action 9. 配置、编译和部署</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2020/01/21/manjaro/">Manjaro 安装配置</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2020/01/02/2019-end/">年终碎碎念和来年Flag</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/12/16/linux-io-scheduler/">Linux I/O调度器备忘</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/11/06/scalatra8/">Scalatra in Action 8. 测试工程师要了杯啤酒</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/08/26/scalatra7/">Scalatra in Action 7. 服务端模板</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/08/22/postgresql/">PostgreSQL 快速使用指南</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/06/30/scalatra6/">Scalatra in Action 6. 处理文件</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/2019/04/29/bug2/">github pages微博图床图片无法显示</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-comment-o"> 最近评论</i></div><script type="text/javascript" src="//counter2015.disqus.com/recent_comments_widget.js?num_items=5&amp;hide_avatars=1&amp;avatar_size=32&amp;excerpt_length=20&amp;hide_mods=1"></script></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://wiki.hushhw.cn" title="hushhw's blog 身经百战见得多了" target="_blank">hushhw's blog 身经百战见得多了</a><ul></ul><a href="https://blog.iseki.space" title="isekiのNote" target="_blank">isekiのNote</a><ul></ul><a href="https://razertory.github.io" title="Razetory的技术博客" target="_blank">Razetory的技术博客</a><ul></ul><a href="https://blog.ajin.cloud" title="ajin的博客" target="_blank">ajin的博客</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2022 <a href="/blog/." rel="nofollow">Not determined yet.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=1.0.0" async></script><script type="text/javascript" src="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=1.0.0" async></script><link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox/dist/jquery.fancybox.min.css"><script type="text/javascript" src="/blog/js/copycode.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/blog/css/copycode.css"><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=1.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=1.0.0"></script></div></body></html>
