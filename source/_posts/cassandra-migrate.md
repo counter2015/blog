@@ -24,7 +24,6 @@ categories: [技术]
 但是后来发现，如果直接修改对应 pvc, 整个集群的资源实际上还是由 cass-operator 管理的，这意味着一旦重启、修改 datacenter 配置项，可能会把容量给改回去，有不小的可能性直接翻车。
 
 
-
 cass-operator 本身提供添加 node 来横向扩容的特性，我们可以直接添加集群中 cassandra 实例的数量， cass-operator 会帮我们把数据重新平衡到新的节点上，并在数据移动完成后自动执行 `nodetool cleanup` 任务，从而清理出磁盘空间。
 
 
@@ -46,7 +45,7 @@ cass-operator 本身提供添加 node 来横向扩容的特性，我们可以直
 所以，经过广泛的查阅文档 / google / stackoverflow ，对比后发现还是使用迁移数据中心的方式比较轻松
 
 - 创建新 dc 集群
-- 修改keyspcae配置参数, 迁移数据
+- 修改keyspace配置参数, 迁移数据
 - 修改客户端连接参数
 - 验证数据，清理旧集群
 
@@ -73,7 +72,7 @@ spec:
     spec:
       containers:
         - name: "cassandra"
-          image: "<privte-domain>/k8ssandra/cass-management-api:4.0.1"
+          image: "<private-domain>/k8ssandra/cass-management-api:4.0.1"
           terminationMessagePath: "/dev/other-termination-log"
           terminationMessagePolicy: "File"
   clusterName: <my-cluster-name>
@@ -91,7 +90,6 @@ spec:
       cpu: 3
   storageConfig:
     cassandraDataVolumeClaimSpec:
-      storageClassName: gp2-wffc
       accessModes:
       - ReadWriteOnce
       resources:
@@ -107,9 +105,9 @@ spec:
       max_heap_size: 22G
 ```
 
-将上述文件 `kubectl applly -f` 应用到集群中，等待 cassdanra 新的实例都启动后，我们就可以尝试连接新 dc 的实例了。
+将上述文件 `kubectl applly -f` 应用到集群中，等待 cassandra 新的实例都启动后，我们就可以尝试连接新 dc 的实例了。
 
-用户名和密码都是使用之前 secrect 里面的同一套
+用户名和密码都是使用之前 secret 里面的同一套
 
 直接连接的话，大概率会报错
 
@@ -142,7 +140,7 @@ nodetool repair --full system_auth
 
 
 
-将自己定义的 keyspace 分配副本的策略进行修改，我是在 akka projection 场景下使用，所以会涉及到这么几个 keyspcae 需要修改
+将自己定义的 keyspace 分配副本的策略进行修改，我是在 akka projection 场景下使用，所以会涉及到这么几个 keyspace 需要修改
 
 原来的分布是在 dc1 集群上存储有3个副本，现在需要在 dc2 上面也存储 3 个副本
 
@@ -187,7 +185,7 @@ nodetool repair --full -tr akka_snapshot
 
 通过 java-driver 连接需要修改连接的数据中心
 
-对于 datastaax-java-driver 需要修改
+对于 datastax-java-driver 需要修改
 
  `datastax-java-driver.basic.load-balancing-policy.local-datacenter`
 
@@ -236,9 +234,9 @@ ALTER KEYSPACE akka_snapshot
 临时停用节点
 
 ```
-722740969534.dkr.ecr.cn-northwest-1.amazonaws.com.cn/k8ssandra/cass-management-api:4.0.1 
+<docker-registry-url>/k8ssandra/cass-management-api:4.0.1 
 
-722740969534.dkr.ecr.cn-northwest-1.amazonaws.com.cn/bitnami/aws-cli:2.4.17
+<docker-registry-url>/bitnami/aws-cli:2.4.17
 ```
 
 在此情况下调用接口以验证数据是否正常
@@ -291,6 +289,58 @@ nodetool removenode 966fb0fb-2079-41cf-a0d9-9329bc3a53a6
 
 至此，所有迁移工作完成撒花
 
+## 2023 更新
+
+之后由于其他需求，需要把部分 cassandra 里面的数据垂直迁移，又做了一遍迁移的步骤。
+发现这里其实不应该使用 `nodetool repair`，因为 repair 会把对比新旧两个数据中心的数据以后再开始数据传输。
+然而，新的数据中心里面的数据是空的，根本没有需要进行数据对比的必要
+这里的数据量比较大，所以会很慢，而且会占用很多的网络带宽
+
+所以这里应该使用 `nodetool rebuild`，这个命令只会把缺失的数据读取过来，不会读取已经存在的数据，所以会快很多
+
+```
+# 注意此处一定要指定 nodetool rebuild 的数据中心
+$ nodetool rebuild -- old_datacenter_name
+```
+
+还有一点需要注意的是，在执行迁移操作时，一定要确保客户端的读、写一致性级别正确被设置
+
+要防止客户端过早连接到新数据中心，并确保读取或写入的一致性级别不会查询新数据中心：
+
+确保客户端配置为使用 `DCAwareRoundRobinPolicy`。
+
+确保客户端指向现有数据中心，这样他们就不会尝试访问新的数据中心，因为新数据中心可能没有任何数据。
+
+如果使用`QUORUM`一致性级别，需要更改为`LOCAL_QUORUM`。
+
+如果使用`ONE`一致性级别，需要设置为`LOCAL_ONE`。
+
+如果客户端应用程序未正确配置，它们可能会在数据中心就绪之前连接到新的数据中心。这会导致连接异常、超时和/或数据不一致。
+以 akka projection 的默认配置为例, 默认的一致性级别是 `QUORUM`, 就需要设置成 `LOCAL_QUORUM`
+
+```
+datastax-java-driver {
+  basic {
+    contact-points = ["{{ .Values.cassandra.host }}:9042"]
+    load-balancing-policy.local-datacenter = "{{ .Values.cassandra.datacenter }}"
+    request.consistency = LOCAL_QUORUM
+  }
+  profiles {
+    akka-persistence-cassandra-profile {
+      basic.request {
+        consistency = LOCAL_QUORUM
+      }
+    }
+    akka-projection-cassandra-profile {
+      basic.request {
+        consistency = LOCAL_QUORUM
+      }
+    }
+  }
+}
+```
+
+数据迁移完成后，可以手动执行 `nodetool compact` 来压实数据，这样可以节省一些磁盘空间
 
 
 ## 参考链接
@@ -302,11 +352,7 @@ nodetool removenode 966fb0fb-2079-41cf-a0d9-9329bc3a53a6
 
 
 
-
-
-
-[1]: https://k8ssandra.io/blog/tutorials/cassandra-database-migration-to-kubernetes-zero-downtime/
-
+[1]: https://k8ssandra.io/blog/tutorials/cassandra-database-migration-to-kubernetes-zero-downtime
 [2]: https://docs.datastax.com/en/cassandra-oss/3.0/cassandra/operations/opsAddDCToCluster.html
 [3]: https://medium.com/flant-com/migrating-cassandra-between-kubernetes-clusters-ae4ab4ada028
 
