@@ -97,7 +97,7 @@ Scala的缺省初始值为:
 
 ### Methods
 
-一个简单的方法是将`bar`的沈明从`val`改为`def`
+一个简单的方法是将`bar`的声明从`val`改为`def`
 
 ```scala
 trait A {
