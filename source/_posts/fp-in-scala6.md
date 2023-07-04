@@ -189,7 +189,7 @@ def +(other: Poly) = new Poly((other.terms foldLeft terms)(addTerm))
 >
 > then we would concatenate this list to the original one.
 
-前者会把terms做map操作，新生成的临时`map`在和原来的做连接，而后者省去了中间生成的步骤
+前者会把terms做map操作，新生成的临时`map`再和原来的做连接，而后者省去了中间生成的步骤
 
 
 
