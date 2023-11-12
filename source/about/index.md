@@ -39,8 +39,6 @@ layout: single-column
 
 Github:  https://github.com/counter2015
 
-Telegram: https://t.me/v01dc0un73r
-
 ## License
 
 默认许可证：
