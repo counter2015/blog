@@ -14,7 +14,7 @@ categories: [技术]
 
 现在又有了新的需求，由于业务变更，需要提供按租户垂直拆分的数据，将整套服务按照租户隔离重新部署。
 
-之前所有的数据都是按照事件变更的形势，通过 protobuf 编码存储到 cassandra 集群内部的，数据表的 schema 使用的是 akka persitence cassandra 自带的，按照 `persistence_id` 作为标识，存放不同实体的变更事件，整体架构是 CQRS(Command and Query Responsibility Segregation) 的形式, 下游通过消费变更事件，触发对应的流水线和模型训练服务。
+之前所有的数据都是按照事件变更的形式，通过 protobuf 编码存储到 cassandra 集群内部的，数据表的 schema 使用的是 akka persitence cassandra 自带的，按照 `persistence_id` 作为标识，存放不同实体的变更事件，整体架构是 CQRS(Command and Query Responsibility Segregation) 的形式, 下游通过消费变更事件，触发对应的流水线和模型训练服务。
 
 ![](https://counter2015.com/picture/cqrs-1.png)
 
@@ -246,7 +246,7 @@ akka projection / persitence  本身没有提供迁移的工具，所以这里�
 
 
 
-- 导出数据时，文件体积可以进一步降低，首先可以通过更换编码：入 cbor-json, protobuf 或其他的二进制格式。上传数据前，可以先进行压缩操作, 减少网络传输的时间。
+- 导出数据时，文件体积可以进一步降低，首先可以通过更换编码：如 cbor-json, protobuf 或其他的二进制格式。上传数据前，可以先进行压缩操作, 减少网络传输的时间。
 
 - 对于较大的文件数据，可以按数据行进行拆分成多个小文件，这样上传下载的时候可以并发。同时也有利于设置检查点。
 
