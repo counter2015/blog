@@ -11,6 +11,8 @@ mathjax: true
 
 本文的写作灵感来自与[凤凰木的面试题 《我们为什么要考斐波那契数列──一道上机笔试题的解析，兼谈技术面试与编程基本功》](https://zhuanlan.zhihu.com/p/144597328),先行致谢。
 
+UPDATE:2024-04 上面这篇文章已经有了更新的版本 [凤凰木的笔记:面试中的斐波那契数列问题](https://www.weiwen.org/p/fibonacci-problems-in-interview)
+
 同时，也是填[之前的坑](https://counter2015.com/2020/03/11/jetbrains-quest-2020/#questions)
 
 > 要求计算斐波那契数列的第50 * 10 ^6 项，前四位和后四位连起来就是本次的key
