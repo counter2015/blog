@@ -22,7 +22,7 @@ Github Actions 这个功能距离首次发布到现在也有5年左右了，现�
 
 ## 和 codecov/coverage 集成
 
-[sbt-scoverage](sbt-scoverage) 是一个用来提供 Scala 代码测试覆盖率的 sbt 插件。
+[sbt-scoverage](https://github.com/scoverage/sbt-scoverage) 是一个用来提供 Scala 代码测试覆盖率的 sbt 插件。
 
 在项目中引入很简单：
 
