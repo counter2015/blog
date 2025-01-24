@@ -58,6 +58,8 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: '21'
+      - name: Install sbt
+        uses: sbt/setup-sbt@v1
       - name: Run tests
         run: sbt coverage test coverageReport
       - uses: codecov/codecov-action@v4
@@ -74,7 +76,9 @@ jobs:
 
 复制好对应项目的 `CODECOV_TOKEN` 后，需要我们在自己的对应仓库里做对应的配置
 
-具体的位置在：`Settings(项目右上角) -> Secrets and variables(左侧目录) -> New repository secret(绿色按钮)`
+具体的位置在：
+
+`Settings(项目右上角) -> Secrets and variables(左侧目录) -> New repository secret(绿色按钮)`
 
 然后把新建一个 `CODECOV_TOKEN` 的 secrets, 并把之前复制好的 token 粘贴过来。
 
@@ -174,6 +178,8 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: '21'
+      - name: Install sbt
+        uses: sbt/setup-sbt@v1
 
       - name: checkout
         uses: actions/checkout@v4
@@ -202,7 +208,9 @@ jobs:
 
 
 
-对应的徽章
+
+
+对应的徽章为
 
 `https://github.com/YOUR_ACCOUNT/YOUR_REPO/actions/workflows/scala-steward.yaml/badge.svg`
 
